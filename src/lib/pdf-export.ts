@@ -1,0 +1,563 @@
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import { Letter } from '../types/database';
+import 'canvas-to-blob';
+
+/**
+ * نظام تصدير PDF عالي الدقة
+ * يضمن أن ما تراه في المعاينة هو ما تحصل عليه بالضبط في التصدير
+ */
+
+/**
+ * خيارات التصدير
+ */
+interface ExportPDFOptions {
+  filename?: string;
+  scale?: number;
+  quality?: number;
+  withTemplate?: boolean;
+  showProgress?: (progress: number) => void;
+}
+
+/**
+ * تصدير خطاب كملف PDF بجودة عالية ومطابقة للمعاينة
+ * @param letter الخطاب المراد تصديره
+ * @param options خيارات التصدير
+ * @returns وعد يتم حله عند اكتمال عملية التصدير
+ */
+export async function exportToPDF(letter: Letter, options: ExportPDFOptions = {}): Promise<void> {
+  // الإعدادات الافتراضية
+  const filename = options.filename || `خطاب-${letter.number || 0}-${letter.year || new Date().getFullYear()}.pdf`;
+  const scale = options.scale || 4.0; // زيادة دقة التصدير (4x للحصول على جودة عالية جداً)
+  const quality = options.quality || 0.99; // جودة صورة عالية جداً
+  const withTemplate = options.withTemplate !== undefined ? options.withTemplate : true;
+  const showProgress = options.showProgress || (() => {});
+  
+  // إظهار مؤشر التحميل
+  const loadingElement = document.createElement('div');
+  loadingElement.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50';
+  loadingElement.innerHTML = `
+    <div class="bg-white rounded-lg p-6 flex flex-col items-center gap-4">
+      <div class="w-12 h-12 border-4 border-t-primary border-primary/30 rounded-full animate-spin"></div>
+      <p class="text-center font-medium">جاري إنشاء ملف PDF عالي الدقة<br>يرجى الانتظار...</p>
+    </div>
+  `;
+  document.body.appendChild(loadingElement);
+  
+  try {
+    showProgress(0.1);
+    
+    // 1. تحميل الخطوط قبل أي شيء آخر
+    await loadFonts();
+    
+    showProgress(0.2);
+    
+    // 2. إنشاء عنصر الخطاب المؤقت
+    const letterElement = await createLetterElement(letter, withTemplate);
+    document.body.appendChild(letterElement);
+    
+    // 3. انتظار فترة قصيرة للتأكد من تحميل الخطوط والعناصر بشكل صحيح
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    showProgress(0.3);
+    
+    // 4. استخدام html2canvas بإعدادات محسنة للحصول على أعلى جودة
+    const canvas = await html2canvas(letterElement, {
+      scale: scale, // دقة عالية جداً
+      useCORS: true, // السماح بتحميل الصور من مصادر خارجية
+      allowTaint: true, // السماح بتلوين العناصر
+      backgroundColor: '#FFFFFF', // خلفية بيضاء
+      letterRendering: true, // تحسين عرض النصوص
+      logging: false, // تعطيل السجلات لتحسين الأداء
+      onclone: optimizeClonedDocument, // تحسين المستند المستنسخ
+      y: -5, // تعديل موضع النص للأعلى قليلاً لتصحيح مشكلة النزول للأسفل
+      x: 0
+    });
+    
+    showProgress(0.7);
+    
+    // 5. إنشاء PDF باستخدام jsPDF
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'a4',
+      compress: true,
+      putOnlyUsedFonts: true,
+      floatPrecision: 16 // زيادة الدقة
+    });
+    
+    // 6. إضافة البيانات الوصفية
+    pdf.setProperties({
+      title: `خطاب ${letter.number || 0}-${letter.year || new Date().getFullYear()}`,
+      subject: letter.content.subject || 'خطاب',
+      author: letter.creator_name || 'نظام الخطابات',
+      keywords: 'خطاب, رسمي',
+      creator: 'نظام إدارة الخطابات'
+    });
+    
+    // 7. أبعاد صفحة A4 بالنقاط
+    const pageWidth = 595;
+    const pageHeight = 842;
+    
+    // 8. إضافة صورة Canvas إلى PDF مع الحفاظ على الدقة
+    pdf.addImage({
+      imageData: canvas.toDataURL('image/jpeg', quality),
+      format: 'JPEG',
+      x: 0,
+      y: 0,
+      width: pageWidth,
+      height: pageHeight,
+      compression: 'NONE' // عدم ضغط الصورة للحفاظ على الجودة
+    });
+    
+    showProgress(0.9);
+    
+    // 9. حفظ ملف PDF
+    pdf.save(filename);
+    
+    showProgress(1.0);
+  } catch (error) {
+    console.error('Error exporting PDF:', error);
+    throw new Error('حدث خطأ أثناء تصدير ملف PDF');
+  } finally {
+    // تنظيف العناصر المؤقتة
+    if (document.body.contains(loadingElement)) {
+      document.body.removeChild(loadingElement);
+    }
+    
+    // التأكد من إزالة العنصر المؤقت للخطاب
+    const tempElement = document.querySelector('div[style*="left: -9999px"]');
+    if (tempElement && tempElement.parentNode) {
+      tempElement.parentNode.removeChild(tempElement);
+    }
+  }
+}
+
+/**
+ * تحميل الخطوط قبل البدء بعملية التصدير
+ */
+async function loadFonts(): Promise<void> {
+  // التحقق من تحميل خط Cairo
+  if (!document.fonts.check('normal normal 14px Cairo')) {
+    // تحميل الخط يدوياً
+    const fontFace = new FontFace(
+      'Cairo',
+      'url(/fonts/cairo/Cairo-Regular.ttf)',
+      { style: 'normal', weight: 'normal' }
+    );
+    
+    try {
+      const loadedFont = await fontFace.load();
+      document.fonts.add(loadedFont);
+      
+      // تحميل النسخة السميكة من الخط
+      const boldFontFace = new FontFace(
+        'Cairo',
+        'url(/fonts/cairo/Cairo-Bold.ttf)',
+        { style: 'normal', weight: 'bold' }
+      );
+      
+      const loadedBoldFont = await boldFontFace.load();
+      document.fonts.add(loadedBoldFont);
+    } catch (e) {
+      console.error('Failed to load fonts:', e);
+    }
+  }
+  
+  // انتظار تحميل الخطوط
+  await document.fonts.ready;
+  
+  // انتظار إضافي للتأكد من تحميل الخطوط بشكل كامل
+  return new Promise(resolve => setTimeout(resolve, 500));
+}
+
+/**
+ * تحسين المستند المستنسخ قبل الرسم
+ */
+function optimizeClonedDocument(clonedDoc: Document): Promise<void> {
+  // إضافة عنصر style للتحكم في تنسيق العناصر
+  const style = clonedDoc.createElement('style');
+  style.textContent = `
+    @font-face {
+      font-family: 'Cairo';
+      src: url('/fonts/cairo/Cairo-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Cairo';
+      src: url('/fonts/cairo/Cairo-Bold.ttf') format('truetype');
+      font-weight: bold;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    @font-face {
+      font-family: 'Cairo';
+      src: url('/fonts/cairo/Cairo-SemiBold.ttf') format('truetype');
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    * {
+      -webkit-font-smoothing: antialiased !important;
+      -moz-osx-font-smoothing: grayscale !important;
+      text-rendering: optimizeLegibility !important;
+      letter-spacing: 0 !important;
+    }
+    
+    div, p, span, h1, h2, h3, h4, h5, h6 {
+      direction: rtl !important;
+      text-align: inherit !important; /* الحفاظ على المحاذاة الأصلية */
+      font-family: 'Cairo', sans-serif !important;
+      line-height: inherit !important;
+    }
+    
+    .letter-content {
+      line-height: inherit !important;
+      font-size: 14px !important;
+      font-family: 'Cairo', sans-serif !important;
+      transform: translateY(-5px) !important; /* تصحيح موضع النص للأعلى */
+    }
+    
+    img {
+      image-rendering: -webkit-optimize-contrast !important;
+      image-rendering: crisp-edges !important;
+    }
+    
+    /* تصحيح عرض الفراغات والأسطر */
+    p {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    br {
+      display: block !important;
+      content: "" !important;
+      line-height: inherit !important;
+    }
+    
+    /* تحسين محاذاة النصوص */
+    [style*="text-align: center"] {
+      text-align: center !important;
+    }
+    
+    [style*="text-align: right"] {
+      text-align: right !important;
+    }
+    
+    [style*="text-align: left"] {
+      text-align: left !important;
+    }
+    
+    [style*="text-align: justify"] {
+      text-align: justify !important;
+    }
+  `;
+  
+  clonedDoc.head.appendChild(style);
+  
+  // انتظار لحظة للتأكد من تطبيق التنسيقات
+  return Promise.resolve();
+}
+
+/**
+ * إنشاء عنصر DOM للخطاب للتصدير
+ */
+async function createLetterElement(letter: Letter, withTemplate: boolean): Promise<HTMLElement> {
+  // الحصول على بيانات القالب من template_snapshot إذا كانت متاحة، وإلا استخدام letter_templates
+  const templateData = letter.template_snapshot || letter.letter_templates;
+  
+  // الحصول على موضع QR من القالب أو استخدام القيم الافتراضية
+  const qrPosition = templateData?.qr_position || {
+    x: null,
+    y: null,
+    size: 80,
+    alignment: 'right'
+  };
+  
+  // إنشاء حاوية الخطاب
+  const container = document.createElement('div');
+  container.style.cssText = `
+    position: fixed;
+    left: -9999px;
+    top: 0;
+    width: 595px;
+    height: 842px;
+    background-color: white;
+    overflow: hidden;
+    direction: rtl;
+    font-family: 'Cairo', sans-serif;
+  `;
+  
+  // إضافة صورة خلفية القالب
+  if (withTemplate && templateData?.image_url) {
+    const backgroundImg = document.createElement('img');
+    backgroundImg.src = templateData.image_url;
+    backgroundImg.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      z-index: 0;
+    `;
+    container.appendChild(backgroundImg);
+    
+    // انتظار تحميل الصورة
+    if (!backgroundImg.complete) {
+      await new Promise<void>((resolve, reject) => {
+        backgroundImg.onload = () => resolve();
+        backgroundImg.onerror = reject;
+        setTimeout(() => resolve(), 1000); // حد أقصى للانتظار
+      });
+    }
+  }
+  
+  // إنشاء طبقة المحتوى
+  const contentLayer = document.createElement('div');
+  contentLayer.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    direction: rtl;
+  `;
+  
+  // رقم الخطاب
+  const numberElement = document.createElement('div');
+  numberElement.style.cssText = `
+    position: absolute;
+    top: 25px;
+    left: 85px;
+    width: 40px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Cairo', sans-serif;
+    color: #000;
+    transform: translateY(-5px); /* تصحيح موضع النص للأعلى */
+  `;
+  numberElement.textContent = letter.number?.toString() || '';
+  contentLayer.appendChild(numberElement);
+  
+  // تاريخ الخطاب
+  const dateElement = document.createElement('div');
+  dateElement.style.cssText = `
+    position: absolute;
+    top: 60px;
+    left: 40px;
+    width: 120px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Cairo', sans-serif;
+    color: #000;
+    transform: translateY(-5px); /* تصحيح موضع النص للأعلى */
+  `;
+  dateElement.textContent = letter.content.date || '';
+  contentLayer.appendChild(dateElement);
+  
+  // محتوى الخطاب
+  const bodyElement = document.createElement('div');
+  bodyElement.className = 'letter-content';
+  bodyElement.style.cssText = `
+    position: absolute;
+    top: 120px;
+    right: 35px;
+    left: 40px;
+    height: 602px;
+    padding: 24px;
+    font-size: 14px;
+    line-height: ${letter.content.lineHeight || 1.5};
+    font-family: 'Cairo', sans-serif;
+    text-align: right;
+    direction: rtl;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    color: #000;
+    transform: translateY(-5px); /* تصحيح موضع النص للأعلى */
+  `;
+  
+  // الحفاظ على المحاذاة الأصلية للنصوص
+  bodyElement.innerHTML = letter.content.body || '';
+  
+  // معالجة محاذاة النصوص بشكل صحيح
+  const paragraphs = bodyElement.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6');
+  paragraphs.forEach(p => {
+    // الحفاظ على المحاذاة الأصلية
+    if (p.style.textAlign) {
+      p.style.textAlign = p.style.textAlign;
+    }
+    
+    // تصحيح ارتفاع السطر
+    if (letter.content.lineHeight) {
+      p.style.lineHeight = letter.content.lineHeight.toString();
+    }
+    
+    // تصحيح المسافات
+    p.style.margin = '0';
+    p.style.padding = '0';
+  });
+  
+  contentLayer.appendChild(bodyElement);
+  
+  // إضافة رمز QR إذا كان متاحاً
+  if (letter.verification_url || letter.content.verification_url) {
+    const verificationUrl = letter.verification_url || letter.content.verification_url;
+    
+    const qrContainer = document.createElement('div');
+    qrContainer.style.cssText = `
+      position: absolute;
+      bottom: ${qrPosition?.y ? 'auto' : '40px'};
+      top: ${qrPosition?.y ? qrPosition.y + 'px' : 'auto'};
+      right: ${qrPosition?.alignment === 'right' ? '40px' : 'auto'};
+      left: ${qrPosition?.alignment === 'left' ? '40px' : 'auto'};
+      ${qrPosition?.alignment === 'center' ? 'left: 50%; transform: translateX(-50%);' : ''}
+      ${qrPosition?.x ? 'left: ' + qrPosition.x + 'px;' : ''}
+      text-align: center;
+      z-index: 2;
+      transform: translateY(-5px); /* تصحيح موضع QR للأعلى */
+    `;
+    
+    // إنشاء صورة QR
+    const qrWrapper = document.createElement('div');
+    qrWrapper.style.cssText = `
+      width: ${qrPosition?.size || 80}px;
+      height: ${qrPosition?.size || 80}px;
+      padding: 4px;
+      background: white;
+      border-radius: 4px;
+      margin: 0 auto;
+    `;
+    
+    const qrImg = document.createElement('img');
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+      `${window.location.origin}/verify/${verificationUrl}`
+    )}`;
+    qrImg.alt = 'رمز التحقق';
+    qrImg.style.cssText = `
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    `;
+    
+    qrWrapper.appendChild(qrImg);
+    qrContainer.appendChild(qrWrapper);
+    
+    // إضافة تسمية QR
+    const qrLabel = document.createElement('div');
+    qrLabel.style.cssText = `
+      font-size: 10px;
+      color: #444;
+      margin-top: 4px;
+      font-family: 'Cairo', sans-serif;
+    `;
+    qrLabel.textContent = 'رمز التحقق';
+    qrContainer.appendChild(qrLabel);
+    
+    contentLayer.appendChild(qrContainer);
+    
+    // انتظار تحميل صورة QR
+    if (!qrImg.complete) {
+      await new Promise<void>((resolve) => {
+        qrImg.onload = () => resolve();
+        setTimeout(() => resolve(), 500); // حد أقصى للانتظار
+      });
+    }
+  }
+  
+  container.appendChild(contentLayer);
+  return container;
+}
+
+/**
+ * تصدير عنصر DOM محدد كملف PDF
+ * مفيدة للتصدير المباشر من واجهة المستخدم
+ */
+export async function exportElementToPDF(element: HTMLElement, options: Partial<ExportPDFOptions> = {}): Promise<void> {
+  const filename = options.filename || 'document.pdf';
+  const scale = options.scale || 4.0;
+  const quality = options.quality || 0.99;
+  
+  // إظهار مؤشر التحميل
+  const loadingElement = document.createElement('div');
+  loadingElement.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50';
+  loadingElement.innerHTML = `
+    <div class="bg-white rounded-lg p-6 flex flex-col items-center gap-4">
+      <div class="w-12 h-12 border-4 border-t-primary border-primary/30 rounded-full animate-spin"></div>
+      <p class="text-center font-medium">جاري إنشاء ملف PDF عالي الدقة<br>يرجى الانتظار...</p>
+    </div>
+  `;
+  document.body.appendChild(loadingElement);
+  
+  try {
+    // تحميل الخطوط أولاً
+    await loadFonts();
+    
+    // تخزين التحويل الأصلي واستعادته لاحقاً
+    const originalTransform = element.style.transform;
+    element.style.transform = 'scale(1)';
+    
+    // تعديل التنسيقات مؤقتاً للحصول على أفضل نتيجة
+    const originalStyle = element.getAttribute('style') || '';
+    element.style.overflow = 'hidden';
+    element.style.pageBreakAfter = 'always';
+    
+    // تحويل العنصر إلى Canvas
+    const canvas = await html2canvas(element, {
+      scale: scale,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#FFFFFF',
+      letterRendering: true,
+      logging: false,
+      onclone: optimizeClonedDocument,
+      y: -5 // تصحيح موضع النص للأعلى
+    });
+    
+    // استعادة التنسيقات الأصلية
+    element.style.transform = originalTransform;
+    element.setAttribute('style', originalStyle);
+    
+    // إنشاء PDF بحجم A4
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'a4',
+      compress: true
+    });
+    
+    // أبعاد A4
+    const pageWidth = 595;
+    const pageHeight = 842;
+    
+    // إضافة Canvas إلى PDF
+    pdf.addImage(
+      canvas.toDataURL('image/jpeg', quality),
+      'JPEG',
+      0, 0,
+      pageWidth, pageHeight,
+      undefined,
+      'NONE' // عدم ضغط الصورة للحفاظ على الجودة
+    );
+    
+    // حفظ PDF
+    pdf.save(filename);
+  } catch (error) {
+    console.error('Error exporting PDF:', error);
+    throw new Error('حدث خطأ أثناء تصدير ملف PDF');
+  } finally {
+    // تنظيف
+    if (document.body.contains(loadingElement)) {
+      document.body.removeChild(loadingElement);
+    }
+  }
+}

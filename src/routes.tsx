@@ -1,0 +1,45 @@
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { AuthGuard } from './components/auth/AuthGuard'
+import { Login } from './pages/auth/Login'
+import { AdminLayout } from './components/layout/AdminLayout'
+import { Dashboard } from './pages/admin/Dashboard'
+import { Letters } from './pages/admin/Letters'
+import { Users } from './pages/admin/Users'
+import { Branches } from './pages/admin/Branches'
+import { EditLetter } from './pages/admin/EditLetter'
+import { ViewLetter } from './pages/admin/ViewLetter'
+import { Settings } from './pages/admin/Settings'
+import { VerifyLetter } from './pages/VerifyLetter'
+import { AuditLogs } from './pages/admin/AuditLogs'
+import { PermissionsManager } from './pages/admin/permissions'
+// استيراد صفحة إنشاء خطاب جديد من المسار الصحيح
+import { LetterEditor } from './features/letters/pages/LetterEditor'
+import { AuthProvider } from './lib/auth'
+import { Approvals } from './pages/admin/Approvals' // إضافة صفحة الموافقات
+
+export function AppRoutes() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        
+        <Route path="/admin" element={<AuthGuard><AdminLayout /></AuthGuard>}>
+          <Route index element={<Dashboard />} />
+          <Route path="letters" element={<Letters />} />
+          <Route path="letters/new" element={<LetterEditor />} />
+          <Route path="letters/edit/:id" element={<EditLetter />} />
+          <Route path="letters/view/:id" element={<ViewLetter />} />
+          <Route path="users" element={<Users />} />
+          <Route path="branches" element={<Branches />} />
+          <Route path="permissions" element={<PermissionsManager />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="audit-logs" element={<AuditLogs />} />
+          <Route path="approvals" element={<Approvals />} /> {/* إضافة مسار صفحة الموافقات */}
+        </Route>
+        
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/verify/:code" element={<VerifyLetter />} />
+      </Routes>
+    </AuthProvider>
+  )
+}

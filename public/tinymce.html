@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TinyMCE مع دعم اللغة العربية</title>
+  <!-- دعم اللغة العربية -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- إضافة TinyMCE من CDN -->
+  <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+</head>
+<body>
+  <h1 style="text-align: center; font-family: 'Cairo', sans-serif; margin-bottom: 20px;">
+    تجربة محرر TinyMCE مع دعم اللغة العربية
+  </h1>
+  
+  <div style="max-width: 800px; margin: 0 auto;">
+    <textarea id="myTextarea">
+      <h2>مرحباً بك في محرر TinyMCE!</h2>
+      <p>هذا نص تجريبي بالعربية <strong>للتأكد من</strong> أن المحرر يعمل بشكل صحيح.</p>
+      <ul>
+        <li>دعم كامل للغة العربية</li>
+        <li>اتجاه من اليمين إلى اليسار</li>
+        <li>خطوط عربية</li>
+      </ul>
+    </textarea>
+  </div>
+  
+  <script src="tinymce-config.js"></script>
+</body>
+</html>
