@@ -69,11 +69,11 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    const success = await approveRequest({
-      requestId: request.id,
+    const success = await approveRequest(
+      request.id,
       comments,
-      signatureId: selectedSignatureId
-    });
+      selectedSignatureId
+    );
     
     if (success) {
       onClose();
@@ -92,10 +92,10 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    const success = await rejectRequest({
-      requestId: request.id,
-      reason: rejectionReason
-    });
+    const success = await rejectRequest(
+      request.id,
+      rejectionReason
+    );
     
     if (success) {
       onClose();
