@@ -305,9 +305,6 @@ export function Header() {
                         </p>
                       )}
                     </div>
-                    <p className="text-xs mt-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 inline-block px-2 py-0.5 rounded-full">
-                      {dbUser?.role === 'admin' ? 'مدير' : 'مستخدم'}
-                    </p>
                   </div>
                   
                   <div className="py-1">
