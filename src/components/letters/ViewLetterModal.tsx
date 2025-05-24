@@ -87,6 +87,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
           year: letterData.year,
           created_at: new Date().toISOString(), // Will be updated
           updated_at: new Date().toISOString(),
+          verification_url: letterData.verification_url,
           letter_templates: {
             id: letterData.template_id,
             name: letterData.template_name,
