@@ -26,44 +26,12 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
   const letterRef = useRef<HTMLDivElement>(null);
   const [retryCount, setRetryCount] = useState(0);
   const debugInfo = useRef<Record<string, any>>({});
-  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && letterId) {
       loadLetter();
     }
   }, [isOpen, letterId, requestId, retryCount]);
-
-  useEffect(() => {
-    if (letter?.signature_id) {
-      loadSignature(letter.signature_id);
-    }
-  }, [letter?.signature_id]);
-
-  async function loadSignature(signatureId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('signatures')
-        .select('signature_url')
-        .eq('id', signatureId)
-        .maybeSingle();
-        
-      if (error) {
-        console.error('Error loading signature:', error);
-        return;
-      }
-      
-      if (data?.signature_url) {
-        setSignatureUrl(data.signature_url);
-      } else {
-        console.log('No signature found for ID:', signatureId);
-        setSignatureUrl(null);
-      }
-    } catch (error) {
-      console.error('Error loading signature:', error);
-      setSignatureUrl(null);
-    }
-  }
 
   async function loadLetter() {
     setIsLoading(true);
@@ -125,7 +93,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
         
         // Convert to full letter object structure
         const fullLetter: Letter = {
-          id: letterData.letter_id || letterData.id,
+          id: letterData.letter_id,
           user_id: requestData[0].user_id,
           template_id: letterData.template_id,
           content: letterData.content,
@@ -134,9 +102,6 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
           year: letterData.year,
           created_at: new Date().toISOString(), // Will be updated
           updated_at: new Date().toISOString(),
-          signature_id: letterData.signature_id, // Include signature ID
-          branch_code: letterData.branch_code,
-          letter_reference: letterData.letter_reference,
           letter_templates: {
             id: letterData.template_id,
             name: letterData.template_name,
@@ -147,13 +112,13 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
             description: '',
             variables: [],
             zones: [],
-            // Add custom element positions if available
+            // إضافة مواضع العناصر المخصصة إذا كانت متوفرة
             letter_elements: letterData.letter_elements || {
               letterNumber: { x: 85, y: 25, width: 32, alignment: 'right', enabled: true },
               letterDate: { x: 40, y: 60, width: 120, alignment: 'center', enabled: true },
               signature: { x: 40, y: 700, width: 150, height: 80, alignment: 'center', enabled: true }
             },
-            // Add QR position if available
+            // إضافة موضع QR إذا كان متوفر
             qr_position: letterData.qr_position || {
               x: 40,
               y: 760,
@@ -260,7 +225,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
   // Get QR position from template or default
   const qrPosition = templateData?.qr_position || {
     x: 40,
-    y: 760, 
+    y: 760,
     size: 80,
     alignment: 'right'
   };
@@ -351,7 +316,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                   </div>
                 </div>
                 
-                <div className="relative mx-auto w-[595px] h-[842px]" ref={letterRef} style={{
+                <div className="relative mx-auto w-[595px] h-[842px] shadow-lg rounded-lg overflow-hidden" ref={letterRef} style={{
                   backgroundImage: templateData?.image_url ? `url(${templateData.image_url})` : 'none',
                   backgroundSize: '100% 100%',
                   backgroundPosition: 'center',
@@ -408,7 +373,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                     />
                     
                     {/* التوقيع - إذا كان الخطاب معتمداً */}
-                    {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && signatureUrl && (
+                    {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && (
                       <div 
                         className="absolute flex flex-col items-center"
                         style={{
@@ -420,7 +385,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                         }}
                       >
                         <img
-                          src={signatureUrl}
+                          src="/signature-placeholder.png" // ستحتاج لاستبدال هذا برابط التوقيع الفعلي
                           alt="توقيع المعتمد"
                           className="h-20 object-contain"
                         />
@@ -428,7 +393,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                       </div>
                     )}
                     
-                    {/* رمز QR */}
+                    {/* رمز QR - موضع مخصص */}
                     {letter.verification_url && qrPosition && (
                       <div 
                         className="absolute flex flex-col items-center"
@@ -441,12 +406,12 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                       >
                         <QRCode
                           value={`${window.location.origin}/verify/${letter.verification_url}`}
-                          size={qrPosition.size}
+                          size={qrPosition.size || 80}
                           level="H"
                           includeMargin
                           className="bg-white p-1.5 rounded"
                         />
-                        <div style={{fontSize: "10px", color: "#666", marginTop: "4px"}}>رمز التحقق</div>
+                        <span className="text-xs text-gray-500 mt-1">رمز التحقق</span>
                       </div>
                     )}
                   </div>
