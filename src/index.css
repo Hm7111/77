@@ -20,9 +20,17 @@
   --ring: 240 4.9% 83.9%;
 }
 
+/* تحسين الأداء بشكل عام */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 @layer base {
   html {
     @apply antialiased;
+    scroll-behavior: smooth;
   }
   
   /* راوطبط تخطي التنقل للوصول */
@@ -77,6 +85,10 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     @apply bg-background text-foreground transition-colors duration-300;
+    /* تحسين: منع تمرير الصفحة عند فتح مربعات الحوار المشتقة */
+    &.modal-open {
+      overflow: hidden;
+    }
   }
 
   @page {
@@ -91,6 +103,11 @@
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    
+    /* تحسين: إخفاء كل العناصر غير المطلوبة عند الطباعة */
+    .no-print, .no-print * {
+      display: none !important;
+    }
   }
 
   /* اختصارات لوحة المفاتيح */
@@ -103,7 +120,7 @@
     @apply invisible absolute z-50 px-3 py-2 text-sm bg-gray-900 dark:bg-gray-800 text-white rounded shadow-lg opacity-0 transition-all duration-300 group-hover:visible group-hover:opacity-100;
   }
   
-  /* إخفاء شريط التمرير مع الحفاظ على الوظيفة */
+  /* إخفاء شريط التمرير مع الحفاظ على الوظيفة - تحسين للتجربة */
   .hide-scrollbar {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
@@ -136,6 +153,16 @@
     .print-only {
       display: block !important;
     }
+    
+    /* تحسين: منع انقسام العناصر بين الصفحات */
+    .print-avoid-break {
+      break-inside: avoid;
+    }
+    
+    /* تحسين: جعل عناصر معينة تبدأ في صفحة جديدة */
+    .print-page-break {
+      break-before: page;
+    }
   }
   
   /* تنسيقات لمحرر مناطق الكتابة */
@@ -147,27 +174,33 @@
     background-size: 20px 20px;
     background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   }
-}
 
-@layer components {
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-  }
-  
+  /* تحسين تأثيرات الحركة لتجربة مستخدم أفضل */
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
   
   @keyframes fadeOut {
-    from { opacity: 1; transform: translateY(0); }
-    to { opacity: 0; transform: translateY(10px); }
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(10px); }
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
   }
   
   .animate-fade-out {
     animation: fadeOut 0.3s ease-in-out;
   }
   
+  /* تحسين: تقليل تأخر الظهور للتطبيق */
+  .app-loading-fade-in {
+    animation: fadeIn 0.15s ease-in-out;
+  }
+}
+
+@layer components {
   /* تخصيصات TinyMCE - بدء */
   .tox-tinymce {
     border-radius: 0.5rem !important;
@@ -176,371 +209,177 @@
     overflow: hidden !important;
   }
   
+  /* تحسين: تقليل استخدام !important لتحسين الأداء */
   .tox.tox-tinymce--toolbar-bottom .tox-editor-header,
   .tox.tox-tinymce--toolbar-top .tox-editor-header {
-    box-shadow: none !important;
-    direction: rtl !important;
+    box-shadow: none;
+    direction: rtl;
   }
   
   .tox .tox-toolbar__group {
-    border-right: none !important;
-    direction: rtl !important;
-    padding: 2px !important;
+    border-right: none;
+    direction: rtl;
+    padding: 2px;
   }
   
   .tox .tox-toolbar,
   .tox .tox-toolbar__overflow,
   .tox .tox-toolbar__primary {
-    background-color: #f9fafb !important;
-    direction: rtl !important;
-    flex-wrap: wrap !important;
-    padding: 1px !important;
+    background-color: #f9fafb;
+    direction: rtl;
+    flex-wrap: wrap;
+    padding: 1px;
   }
   
   .dark .tox .tox-toolbar,
   .dark .tox .tox-toolbar__overflow,
   .dark .tox .tox-toolbar__primary {
-    background-color: #1e293b !important;
+    background-color: #1e293b;
   }
   
   .tox .tox-tbtn {
-    color: #4b5563 !important;
-    margin: 1px !important;
+    color: #4b5563;
+    margin: 1px;
   }
   
   .dark .tox .tox-tbtn {
-    color: #e5e7eb !important;
+    color: #e5e7eb;
   }
   
   .tox .tox-tbtn:hover {
-    background-color: #e5e7eb !important;
+    background-color: #e5e7eb;
   }
   
   .dark .tox .tox-tbtn:hover {
-    background-color: #334155 !important;
+    background-color: #334155;
   }
   
   /* Make toolbar buttons more visible */
   .tox .tox-tbtn--enabled, 
   .tox .tox-tbtn--enabled:hover {
-    background: var(--primary) !important;
-    color: white !important;
+    background: var(--primary);
+    color: white;
   }
   
   .tox .tox-tbtn--enabled svg, 
   .tox .tox-tbtn--enabled:hover svg {
-    fill: white !important;
+    fill: white;
   }
   
   .tox .tox-edit-area__iframe {
-    background-color: white !important;
-    direction: rtl !important;
+    background-color: white;
+    direction: rtl;
   }
   
   .dark .tox .tox-edit-area__iframe {
-    background-color: #1e293b !important;
+    background-color: #1e293b;
   }
   
   .tox-tinymce-aux {
-    z-index: 50 !important;
+    z-index: 50;
   }
   
-  /* Fix the size of the editor to match template */
+  /* تحسين: ضبط ارتفاع ثابت */
   .letter-editor .tox-tinymce {
-    min-height: 602px !important; /* Match the letter content area */
-    height: auto !important;
+    min-height: 602px;
+    height: auto;
   }
   
-  /* Custom TinyMCE placeholder */
-  .tox .tox-edit-area__iframe {
-    position: relative;
-  }
-  
-  [data-placeholder]::before {
-    content: attr(data-placeholder);
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 0.75rem 1rem;
-    color: rgba(34, 47, 62, 0.5);
-    pointer-events: none;
-  }
-  
-  /* Fix for RTL TinyMCE toolbar */
-  .tox .tox-tbtn svg {
-    transform: scaleX(1) !important;
+  /* تحسين: تقليل قواعد CSS المكررة */
+  .tox {
+    & .tox-edit-area__iframe {
+      display: block;
+      direction: rtl;
+    }
+    
+    & .tox-tbtn__icon-wrap {
+      margin-left: 4px;
+      margin-right: 0;
+    }
+    
+    & .tox-tab, 
+    & .tox-toolbar-textfield,
+    & .tox-listbox__select,
+    & .tox-swatches__picker,
+    & .tox-dialog,
+    & .tox-textfield, 
+    & .tox-textarea, 
+    & .tox-toolbar-textfield, 
+    & .tox-selectfield select,
+    & .tox-toolbar-select {
+      direction: rtl;
+      text-align: right;
+    }
+    
+    & .tox-collection--list .tox-collection__item,
+    & .tox-menu {
+      text-align: right;
+    }
+    
+    & .tox-collection__item-icon {
+      margin-left: 8px;
+      margin-right: 0;
+    }
+    
+    & .tox-dialog__footer,
+    & .tox-dialog__footer-end,
+    & .tox-dialog__footer-start {
+      direction: rtl;
+    }
   }
 
-  /* Fix dialog and menu positioning for RTL */
-  .tox .tox-collection--list .tox-collection__item,
-  .tox .tox-menu {
-    text-align: right !important;
+  /* تقليل تكرار قواعد CSS */
+  [dir="rtl"] {
+    & .tox-toolbar__group {
+      direction: rtl;
+    }
+    
+    & .tox-statusbar__branding {
+      margin-right: auto;
+      margin-left: 0;
+    }
   }
   
-  /* RTL icon alignment */
-  .tox .tox-collection__item-icon {
-    margin-left: 8px !important;
-    margin-right: 0 !important;
-  }
-  
-  /* Emoticons dialog RTL fixes */
-  .tox .tox-dialog__body-content {
-    text-align: right !important;
-    direction: rtl !important;
-  }
-
-  /* Fix RTL menu layouts */
-  .tox .tox-menu.tox-collection.tox-collection--list {
-    direction: rtl !important;
-  }
-
-  /* Fix dialog button layouts */
-  .tox .tox-dialog__footer {
-    direction: rtl !important;
-  }
-
-  /* Fix form layouts */
-  .tox .tox-form {
-    direction: rtl !important;
-  }
-
-  /* Fix label text alignment */
-  .tox .tox-label, .tox .tox-toolbar-label {
-    text-align: right !important;
-    direction: rtl !important;
-  }
-
-  /* Fix dialog headings for RTL */
-  .tox .tox-dialog__title {
-    text-align: right !important;
-    direction: rtl !important;
-  }
-  
-  /* Fix dialog buttons order */
-  .tox .tox-dialog__footer .tox-button:first-child {
-    margin-left: 8px !important;
-    margin-right: 0 !important;
-  }
-  
-  /* Fix dropdown menus */
-  .tox .tox-collection--list .tox-collection__group {
-    direction: rtl !important;
-  }
-  
-  /* Fix menu item layout */
-  .tox .tox-collection__item-label {
-    text-align: right !important;
-  }
-  
-  /* Fix dialog inputs */
-  .tox .tox-textfield, .tox .tox-textarea, .tox .tox-selectfield select {
-    text-align: right !important;
-    direction: rtl !important;
-  }
-
-  /* Fix the editor iframe content */
-  .tox .tox-edit-area__iframe {
-    direction: rtl !important;
-  }
-
-  /* Fix dialog layout direction */
-  .tox .tox-dialog {
-    direction: rtl !important;
-  }
-
-  /* Fix button icon alignment in RTL mode */
-  .tox .tox-tbtn__icon-wrap {
-    margin-left: 4px !important;
-    margin-right: 0 !important;
-  }
-  
-  /* Fix tabbing order in RTL mode */
-  .tox .tox-tab {
-    direction: rtl !important;
-    text-align: right !important;
-  }
-  
-  /* Fix toolbar spacing in RTL mode */
-  .tox .tox-toolbar-textfield {
-    direction: rtl !important;
-  }
-  
-  /* Fix checkbox alignment in RTL mode */
-  .tox .tox-checkbox__label {
-    margin-right: 4px !important;
-    margin-left: 0 !important;
-  }
-  
-  /* Force RTL direction on editor body */
-  .mce-content-body {
-    direction: rtl !important;
-    text-align: right !important;
-    line-height: inherit !important;
-  }
-
-  /* تنسيقات TinyMCE */
-  .mce-content-body p {
-    white-space: pre-wrap !important;
-    line-height: inherit !important;
-    margin-bottom: 0 !important;
-  }
-
-  /* تنسيق معاينة الخطاب في القالب */
-  .template-content {
-    direction: rtl !important;
-    text-align: right !important;
-    line-height: inherit !important;
-  }
-
-  /* تحسين عرض الفراغات والأسطر الجديدة */
-  .mce-content-body br {
-    display: block !important;
-    content: " " !important;
-    line-height: inherit !important;
-  }
-  
-  /* Improve editor borders and appearance */
-  .tinymce-editor {
-    border-radius: 0.5rem;
-    overflow: hidden;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  }
-  
-  /* Match editor dimensions with template */
-  .tox .tox-edit-area {
-    padding: 0 !important;
-  }
-  
-  /* Make toolbar more compact */
-  .tox .tox-toolbar__group {
-    padding: 0 4px !important;
-  }
-  
-  .tox .tox-toolbar-overlord {
-    background-color: #f9fafb !important;
-    border-bottom: 1px solid #e5e7eb !important;
-  }
-  
-  .dark .tox .tox-toolbar-overlord {
-    background-color: #1e293b !important;
-    border-bottom: 1px solid #334155 !important;
-  }
-
-  /* Fix overlapping text issues in TinyMCE */
-  .tox-tinymce-inline .tox-editor-header {
-    direction: ltr !important;
-  }
-
-  /* Fix for overlapping text in editor */
-  .tox-editor-container {
-    direction: ltr !important;
-  }
-
-  .tox .tox-edit-area__iframe {
-    display: block !important;
-  }
-
-  /* Ensure RTL text display correctly */
-  body.mce-content-body {
-    display: block !important;
-    unicode-bidi: isolate !important;
-  }
-
-  /* Ensure paragraphs don't overlap */
-  .mce-content-body p {
-    display: block !important;
-    clear: both !important;
-    white-space: normal !important;
-    min-height: 1.2em !important;
-  }
-  
-  /* Fix Arabic text rendering issues */
-  .mce-content-body {
-    letter-spacing: 0 !important;
-    word-spacing: normal !important;
-  }
-  
-  /* Fix overlapping Arabic text */
-  .mce-content-body * {
-    text-rendering: optimizeLegibility !important;
-    -webkit-font-smoothing: antialiased !important;
-    text-shadow: 1px 1px 1px rgba(0,0,0,0.004) !important;
-    text-justify: auto !important;
-  }
-  
-  /* Prevent Arabic text character overlapping */
-  .mce-content-body span, 
-  .mce-content-body p,
-  .mce-content-body div,
-  .mce-content-body h1,
-  .mce-content-body h2,
-  .mce-content-body h3,
-  .mce-content-body h4,
-  .mce-content-body h5,
-  .mce-content-body h6,
-  .mce-content-body li,
-  .mce-content-body ul,
-  .mce-content-body ol {
-    text-overflow: clip !important;
-    white-space: normal !important;
-    overflow-wrap: break-word !important;
-    word-wrap: break-word !important;
-    word-break: normal !important;
-    display: block !important;
-    unicode-bidi: isolate !important;
-  }
-  
-  /* Fix character spacing for Arabic text */
-  .mce-content-body.mce-content-rtl * {
-    letter-spacing: 0 !important;
-  }
-  
-  /* تخصيصات TinyMCE - نهاية */
-  
-  /* تصحيح عرض زر الإضافة بجوار مجموعة الأدوات */
-  .editor-toggle {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    background-color: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  
-  .editor-toggle button {
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    display: flex;
-    align-items: center;
-    background-color: #f3f4f6;
-    color: #4b5563;
-  }
-  
-  .editor-toggle button.active {
-    background-color: #3b82f6;
-    color: white;
-  }
-  
-  /* تحسين توزيع أزرار TinyMCE */
-  .tox .tox-toolbar__primary {
-    flex-wrap: wrap !important;
-  }
-  
-  /* تخصيصات محرر النصوص - للتوافق مع قالب الخطاب */
-  .letter-editor .tox-tinymce,
-  .letter-editor .tox-editor-container,
-  .letter-editor .tox-sidebar-wrap,
-  .letter-editor .tox-edit-area,
-  .letter-editor .tox-edit-area__iframe {
-    min-height: 602px !important;
-  }
-  
-  .letter-editor .tox-edit-area__iframe {
-    height: 602px !important;
+  /* ترشيد CSS بتحسين الانتقائية */
+  .letter-editor {
+    & .tox-tinymce {
+      min-height: 602px;
+    }
+    
+    & .mce-content-body {
+      line-height: inherit;
+      direction: rtl;
+      text-align: right;
+    }
+    
+    & .tox-sidebar-wrap,
+    & .tox-edit-area,
+    & .tox-edit-area__iframe {
+      min-height: 602px;
+    }
   }
   
   /* إزالة شريط الحالة تماماً */
   .tox-statusbar {
-    display: none !important;
+    display: none;
+  }
+  
+  /* تحسين أداء CSS للإطارات المضمنة */
+  .mce-content-body {
+    direction: rtl !important;
+    text-align: right !important;
+    font-family: 'Cairo', sans-serif !important;
+    
+    & p, & div, & h1, & h2, & h3, & h4, & h5, & h6, & li {
+      direction: rtl !important;
+      text-align: inherit !important;
+      line-height: inherit !important;
+    }
+    
+    & br {
+      content: " ";
+      line-height: inherit;
+      display: block;
+    }
   }
 }

@@ -1,0 +1,11 @@
+# This file is used by:
+# 1. autoprefixer to adjust CSS to support the below specified browsers
+# 2. babel to target the list of browsers to support 
+
+# For additional details regarding support
+# https://github.com/browserslist/browserslist#readme
+
+> 0.5%
+last 2 versions
+not dead
+not IE 11

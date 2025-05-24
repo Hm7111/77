@@ -7,9 +7,10 @@ import { checkConnection } from '../lib/letter-utils'
 import type { Letter } from '../types/database'
 import { useToast } from './useToast'
 
+// تحسين: إعدادات التخزين المؤقت
 const LETTERS_CACHE_TIME = 1000 * 60 * 30 // 30 minutes
+const LETTER_STALE_TIME = 1000 * 60 * 5 // 5 minutes
 const RETRY_INTERVAL = 3000 // 3 seconds
-const STALE_TIME = 1000 * 30 // 30 seconds
 
 export function useLetters() {
   const queryClient = useQueryClient()
@@ -19,8 +20,12 @@ export function useLetters() {
   const { toast } = useToast()
   const [loadingState, setLoadingState] = useState<Record<string, boolean>>({})
 
+  // تحسين: استخدام معرف للتخزين المؤقت لكل مستخدم
+  const queryKey = user?.id ? ['letters', user.id] : ['letters']
+
+  // استعلام محسن مع تقليل عدد طلبات التحديث
   const { data: letters = [], isLoading, refetch } = useQuery({
-    queryKey: ['letters'],
+    queryKey,
     queryFn: async () => {
       const isOnline = await checkConnection()
       if (!isOnline) {
@@ -31,23 +36,47 @@ export function useLetters() {
 
       const { data, error } = await supabase
         .from('letters')
-        .select('*, letter_templates(*)')
+        .select('*, letter_templates(id, name, image_url)') // تحسين: تحديد الحقول المطلوبة فقط
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
       
       if (error) throw error
+      
+      // تحسين: حفظ نتائج الخطابات في مخزن IndexedDB للوضع الغير متصل
+      if (data && data.length > 0) {
+        try {
+          localStorage.setItem('letters_last_fetch', new Date().toISOString())
+          localStorage.setItem('letters_cache', JSON.stringify(data))
+        } catch (err) {
+          console.warn('Failed to cache letters in localStorage:', err)
+        }
+      }
+      
       return data
     },
     enabled: !isExporting && !!user?.id,
-    staleTime: STALE_TIME,
+    staleTime: LETTER_STALE_TIME, // تحسين: زيادة وقت التقادم
     cacheTime: LETTERS_CACHE_TIME,
     retry: 3,
     retryDelay: RETRY_INTERVAL,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // تحسين: تقليل عمليات إعادة الجلب غير الضرورية
     refetchOnReconnect: true,
     refetchOnMount: true,
     onError: (error) => {
       console.error('Error fetching letters:', error)
+      
+      // تحسين: استرجاع البيانات المخزنة مؤقتًا عندما يكون في وضع عدم الاتصال
+      if (isOffline) {
+        try {
+          const cachedData = localStorage.getItem('letters_cache')
+          if (cachedData) {
+            return JSON.parse(cachedData)
+          }
+        } catch (err) {
+          console.warn('Failed to retrieve cached letters:', err)
+        }
+      }
+      
       if (!isOffline) {
         toast({
           title: 'خطأ',
@@ -58,37 +87,54 @@ export function useLetters() {
     }
   })
 
+  // تحسين: استرجاع الخطابات المخزنة مؤقتًا عند التحميل في وضع غير متصل
+  useEffect(() => {
+    if (isOffline && letters.length === 0) {
+      try {
+        const cachedData = localStorage.getItem('letters_cache')
+        if (cachedData) {
+          queryClient.setQueryData(queryKey, JSON.parse(cachedData))
+        }
+      } catch (err) {
+        console.warn('Failed to retrieve cached letters:', err)
+      }
+    }
+  }, [isOffline, letters.length, queryClient, queryKey])
+
   // إعادة المحاولة تلقائياً عند استعادة الاتصال
   useEffect(() => {
     if (isOffline) {
       const interval = setInterval(async () => {
         const isOnline = await checkConnection()
         if (isOnline) {
-          queryClient.invalidateQueries({ queryKey: ['letters'] })
+          queryClient.invalidateQueries({ queryKey })
         }
       }, RETRY_INTERVAL)
       return () => clearInterval(interval)
     }
-  }, [isOffline, queryClient])
+  }, [isOffline, queryClient, queryKey])
 
   // تهيئة قاعدة البيانات المحلية عند بدء التطبيق
   useEffect(() => {
     initDB()
   }, [])
 
+  // تحسين: الخطابات المخزنة مؤقتًا محليًا
   const { data: drafts = [] } = useQuery({
     queryKey: ['drafts'],
     queryFn: getAllDrafts,
     cacheTime: LETTERS_CACHE_TIME,
-    staleTime: STALE_TIME,
+    staleTime: LETTER_STALE_TIME,
   })
 
+  // تحسين: تنفيذ عمليات التغيير باستخدام useMutation مع التخزين المؤقت الذكي
   const createMutation = useMutation({
     mutationFn: async (letter: Partial<Letter>) => {
       if (!letter.template_id) {
         throw new Error('يجب اختيار قالب للخطاب')
       }
       
+      // تحسين: استخدام تنسيق معاملة واحدة
       const { data, error } = await supabase
         .from('letters')
         .insert({
@@ -103,14 +149,15 @@ export function useLetters() {
           creator_name: letter.creator_name,
           verification_url: letter.verification_url
         })
-        .select('*, letter_templates(*)')
+        .select('id, number, year, content, status, created_at, letter_templates(id, name, image_url)') // تحسين: تحديد الحقول المطلوبة فقط
         .single()
 
       if (error) throw error
       return data
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['letters'] })
+      // تحسين: تحديث التخزين المؤقت بشكل انتقائي
+      queryClient.setQueryData(queryKey, (old: Letter[] = []) => [data, ...old])
       
       // إذا تم إنشاء الخطاب من مسودة محلية، قم بحذفها
       if (data.local_id) {
@@ -141,14 +188,18 @@ export function useLetters() {
         .from('letters')
         .update(letter)
         .eq('id', letter.id)
-        .select()
+        .select('*, letter_templates(id, name, image_url)') // تحسين: تحديد الحقول المطلوبة فقط
         .single()
 
       if (error) throw error
       return data
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['letters'] })
+      // تحسين: تحديث التخزين المؤقت بشكل انتقائي
+      queryClient.setQueryData(queryKey, (old: Letter[] = []) => 
+        old.map(letter => letter.id === data.id ? data : letter)
+      )
+      
       setLoadingState(prev => ({ ...prev, [data.id]: false }))
       
       toast({
@@ -179,9 +230,14 @@ export function useLetters() {
         .eq('id', id)
 
       if (error) throw error
+      return id
     },
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['letters'] })
+    onSuccess: (id) => {
+      // تحسين: تحديث التخزين المؤقت بشكل انتقائي
+      queryClient.setQueryData(queryKey, (old: Letter[] = []) => 
+        old.filter(letter => letter.id !== id)
+      )
+      
       setLoadingState(prev => ({ ...prev, [id]: false }))
       
       toast({
@@ -206,9 +262,8 @@ export function useLetters() {
   const reloadAfterExport = async () => {
     setIsExporting(true)
     try {
-      await queryClient.invalidateQueries({ queryKey: ['letters'] })
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      await refetch()
+      // تحسين: استخدام invalidateQueries فقط بدلاً من refetch لتجنب الطلبات المتكررة
+      await queryClient.invalidateQueries({ queryKey })
       
       toast({
         title: 'تم التحديث',
@@ -228,18 +283,20 @@ export function useLetters() {
     }
   }
 
-  // دالة للحفظ الجماعي
+  // تحسين: دالة للحفظ الجماعي
   const batchSave = async (letters: Partial<Letter>[]) => {
     if (!letters.length) return
     
     try {
+      // تنفيذ العملية في معاملة واحدة
       const { error } = await supabase
         .from('letters')
-        .upsert(letters)
+        .upsert(letters, { onConflict: 'id' })
       
       if (error) throw error
       
-      queryClient.invalidateQueries({ queryKey: ['letters'] })
+      // تحديث التخزين المؤقت
+      queryClient.invalidateQueries({ queryKey })
       
       // إزالة المسودات المحلية التي تم حفظها بنجاح
       const localIds = letters
@@ -257,6 +314,37 @@ export function useLetters() {
     }
   }
 
+  // تحسين: جلب خطاب واحد مع تخزين مؤقت
+  const getLetter = useCallback(async (id: string): Promise<Letter | null> => {
+    try {
+      // أولا تحقق من التخزين المؤقت
+      const cachedLetter = queryClient.getQueryData<Letter[]>(queryKey)?.find(l => l.id === id);
+      
+      if (cachedLetter) {
+        return cachedLetter;
+      }
+      
+      // إذا لم يتم العثور في التخزين المؤقت، استعلم من الخادم
+      const { data, error } = await supabase
+        .from('letters')
+        .select('*, letter_templates(*)')
+        .eq('id', id)
+        .single();
+        
+      if (error) throw error;
+      
+      // تخزين النتيجة في ذاكرة التخزين المؤقت
+      if (data) {
+        queryClient.setQueryData(['letter', id], data);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching letter:', error);
+      return null;
+    }
+  }, [queryClient, queryKey]);
+
   return {
     letters,
     drafts,
@@ -272,5 +360,6 @@ export function useLetters() {
     getDraft,
     deleteDraft,
     batchSave,
+    getLetter, // إضافة دالة جلب خطاب واحد
   }
 }

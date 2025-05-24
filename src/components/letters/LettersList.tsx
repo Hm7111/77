@@ -38,6 +38,7 @@ export function LettersList({}: LetterListProps) {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [previewLetter, setPreviewLetter] = useState<Letter | null>(null);
+  const [selectedLetterId, setSelectedLetterId] = useState<string | null>(null);
   
   const { data: letters = [], isLoading, refetch } = useQuery({
     queryKey: ['letters', dbUser?.id],
@@ -56,13 +57,13 @@ export function LettersList({}: LetterListProps) {
     enabled: !!dbUser?.id
   });
 
-  // Filter and sort letters
+  // تحسين: استخدام useMemo لفلترة الخطابات
   const filteredLetters = useMemo(() => {
     return letters.filter(letter => {
-      // Status filter
+      // فلتر الحالة
       if (statusFilter !== 'all' && letter.status !== statusFilter) return false;
       
-      // Search filter
+      // فلتر البحث
       if (search) {
         const searchLower = search.toLowerCase();
         return (
@@ -94,7 +95,7 @@ export function LettersList({}: LetterListProps) {
       queryClient.invalidateQueries({ queryKey: ['letters'] });
       setShowDeleteConfirm(null);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error deleting letter:', error);
       toast({
         title: 'خطأ',
         description: 'حدث خطأ أثناء حذف الخطاب',

@@ -28,6 +28,9 @@ console.log(`إجمالي ملفات الهجرة: ${migrationFiles.length}`);
 console.log(`سيتم الاحتفاظ بـ ${keepLatest} ملفات في المجلد الرئيسي`);
 console.log(`سيتم أرشفة ${filesToArchive.length} ملفات`);
 
+// إنشاء ملف .gitignore في مجلد الأرشيف لتجنب تتبع الملفات المؤرشفة
+fs.writeFileSync(path.join(archiveDir, '.gitignore'), '*\n!.gitignore\n');
+
 // نقل الملفات إلى الأرشيف
 let archivedCount = 0;
 filesToArchive.forEach(file => {

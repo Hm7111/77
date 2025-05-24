@@ -1,0 +1,57 @@
+# تحسين الكاش وأداء التحميل
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # كاش للصور والخطوط والملفات الثابتة
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType application/font-woff "access plus 1 year"
+  ExpiresByType application/font-woff2 "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType application/vnd.ms-fontobject "access plus 1 year"
+  ExpiresByType font/ttf "access plus 1 year"
+  ExpiresByType font/otf "access plus 1 year"
+  ExpiresByType application/pdf "access plus 1 month"
+  
+  # كاش أقصر للملفات المتغيرة
+  ExpiresByType text/css "access plus 1 week"
+  ExpiresByType text/javascript "access plus 1 week"
+  ExpiresByType application/javascript "access plus 1 week"
+  ExpiresByType application/json "access plus 0 seconds"
+</IfModule>
+
+# تمكين GZIP لضغط الملفات
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json text/javascript application/font-woff application/font-woff2 image/svg+xml
+</IfModule>
+
+# تحسينات الأمان
+<IfModule mod_headers.c>
+  # منع استعراض المجلدات
+  Options -Indexes
+  
+  # إعدادات X-Frame-Options
+  Header set X-Frame-Options "SAMEORIGIN"
+  
+  # منع تخمين نوع MIME
+  Header set X-Content-Type-Options "nosniff"
+  
+  # الحماية من XSS
+  Header set X-XSS-Protection "1; mode=block"
+  
+  # تعيين سياسة Content Security Policy
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tiny.cloud cdn.jsdelivr.net; connect-src 'self' hbxalipjrbcrqljddxfp.supabase.co; img-src 'self' data: https://* blob:; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; frame-src 'self'"
+</IfModule>
+
+# إعادة توجيه كافة الطلبات إلى index.html للتطبيقات أحادية الصفحة (SPA)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
