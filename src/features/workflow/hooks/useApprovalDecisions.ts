@@ -29,8 +29,11 @@ export function useApprovalDecisions() {
     setError(null);
     
     try {
+      // Initialize signatureId with the provided value
+      let signatureId = data.signatureId;
+
       // التأكد من وجود توقيع
-      if (!data.signatureId) {
+      if (!signatureId) {
         const { data: user } = await supabase.auth.getUser();
         const userId = user?.user?.id;
         
@@ -53,15 +56,15 @@ export function useApprovalDecisions() {
       }
       
       console.log('Calling RPC approve_letter_with_signature with:', {
-        p_request_id: requestId,
+        p_request_id: data.requestId,
         p_signature_id: signatureId,
-        p_comments: comments || null
+        p_comments: data.comments || null
       });
       
       const { error } = await supabase.rpc('approve_letter_with_signature', {
-        p_request_id: requestId,
+        p_request_id: data.requestId,
         p_signature_id: signatureId,
-        p_comments: comments || null
+        p_comments: data.comments || null
       });
 
       if (error) throw error;
@@ -93,10 +96,10 @@ export function useApprovalDecisions() {
   /**
    * رفض طلب
    */
-  const rejectRequest = useCallback(async (requestId: string, reason: string) => {
-    console.log('rejectRequest called with:', { requestId, reason });
+  const rejectRequest = useCallback(async (data: RejectionData) => {
+    console.log('rejectRequest called with:', data);
     
-    if (!requestId) {
+    if (!data.requestId) {
       toast({
         title: 'خطأ',
         description: 'معرف طلب الموافقة غير صالح',
@@ -105,7 +108,7 @@ export function useApprovalDecisions() {
       return false;
     }
 
-    if (!reason || reason.trim() === '') {
+    if (!data.reason || data.reason.trim() === '') {
       toast({
         title: 'خطأ',
         description: 'يجب تحديد سبب الرفض',
@@ -119,13 +122,13 @@ export function useApprovalDecisions() {
     
     try {
       console.log('Calling RPC reject_letter with:', {
-        p_request_id: requestId,
-        p_reason: reason,
+        p_request_id: data.requestId,
+        p_reason: data.reason,
       });
       
       const { error } = await supabase.rpc('reject_letter', {
-        p_request_id: requestId,
-        p_reason: reason,
+        p_request_id: data.requestId,
+        p_reason: data.reason,
       });
 
       if (error) throw error;
