@@ -408,10 +408,17 @@ export function ViewableLetterEditor() {
   // Get template data from template_snapshot if available, otherwise from letter_templates
   const templateData = letter.template_snapshot || letter.letter_templates;
   
+  // Get custom element positions from template letter_elements if available
+  const letterElements = templateData?.letter_elements || {
+    letterNumber: { x: 85, y: 25, width: 32, alignment: 'right', enabled: true },
+    letterDate: { x: 40, y: 60, width: 120, alignment: 'center', enabled: true },
+    signature: { x: 40, y: 700, width: 150, height: 80, alignment: 'center', enabled: true }
+  };
+  
   // Get QR position from template or default
   const qrPosition = templateData?.qr_position || {
-    x: null,
-    y: null,
+    x: 40,
+    y: 760, 
     size: 80,
     alignment: 'right'
   };
@@ -474,16 +481,39 @@ export function ViewableLetterEditor() {
               }}
             >
               <div className="absolute inset-0">
-                {/* مرجع الخطاب المركب */}
-                <div className="absolute top-[25px] left-[85px] w-32 text-right">
-                  <span className="font-medium text-sm">
-                    {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
-                  </span>
-                </div>
+                {/* مرجع الخطاب المركب - استخدام مواضع العناصر المخصصة */}
+                {letterElements.letterNumber.enabled && (
+                  <div 
+                    className="absolute"
+                    style={{
+                      top: `${letterElements.letterNumber.y}px`,
+                      left: `${letterElements.letterNumber.x}px`,
+                      width: `${letterElements.letterNumber.width}px`,
+                      textAlign: letterElements.letterNumber.alignment as "left" | "right" | "center"
+                    }}
+                  >
+                    <span className="font-medium text-sm">
+                      {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+                    </span>
+                  </div>
+                )}
                 
-                <div className="absolute top-[60px] left-[40px] w-32 p-1 text-sm font-semibold text-center">
-                  {letter.content.date}
-                </div>
+                {/* تاريخ الخطاب - استخدام مواضع العناصر المخصصة */}
+                {letterElements.letterDate.enabled && (
+                  <div 
+                    className="absolute"
+                    style={{
+                      top: `${letterElements.letterDate.y}px`,
+                      left: `${letterElements.letterDate.x}px`,
+                      width: `${letterElements.letterDate.width}px`,
+                      textAlign: letterElements.letterDate.alignment as "left" | "right" | "center"
+                    }}
+                  >
+                    {letter.content.date}
+                  </div>
+                )}
+                
+                {/* محتوى الخطاب */}
                 <div 
                   dangerouslySetInnerHTML={{ __html: letter.content.body || '' }}
                   className="absolute top-[120px] right-[35px] left-[40px] bottom-[120px] p-6 text-sm"
@@ -498,20 +528,36 @@ export function ViewableLetterEditor() {
                   }}
                 />
                 
-                {/* رمز QR - موضع مخصص */}
-                {letter.verification_url && (
+                {/* التوقيع - إذا كان الخطاب معتمداً */}
+                {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && (
                   <div 
                     className="absolute flex flex-col items-center"
                     style={{
-                      bottom: qrPosition?.y ? 'auto' : '40px',
-                      top: qrPosition?.y ? qrPosition.y + 'px' : 'auto',
-                      right: qrPosition?.alignment === 'right' ? '40px' : 'auto',
-                      left: qrPosition?.alignment === 'left' ? '40px' : 'auto',
-                      ...(qrPosition?.alignment === 'center' ? {
-                        left: '50%',
-                        transform: 'translateX(-50%)'
-                      } : {}),
-                      ...(qrPosition?.x ? { left: qrPosition.x + 'px' } : {})
+                      top: letterElements.signature.y + 'px',
+                      left: letterElements.signature.x + 'px',
+                      width: letterElements.signature.width + 'px',
+                      height: letterElements.signature.height + 'px',
+                      textAlign: letterElements.signature.alignment as "left" | "right" | "center"
+                    }}
+                  >
+                    <img
+                      src="/signature-placeholder.png" // ستحتاج لاستبدال هذا برابط التوقيع الفعلي
+                      alt="توقيع المعتمد"
+                      className="h-20 object-contain"
+                    />
+                    <span className="text-xs text-gray-800 mt-1 font-bold">توقيع المعتمد</span>
+                  </div>
+                )}
+                
+                {/* رمز QR - موضع مخصص */}
+                {letter.verification_url && qrPosition && (
+                  <div 
+                    className="absolute flex flex-col items-center"
+                    style={{
+                      top: qrPosition.y + 'px',
+                      left: qrPosition.x + 'px',
+                      width: qrPosition.size + 'px',
+                      height: qrPosition.size + 'px'
                     }}
                   >
                     <QRCode
@@ -796,21 +842,79 @@ export function ViewableLetterEditor() {
               {/* النقاط الإرشادية للمرجع والتاريخ */}
               {showGuides && (
                 <>
-                  <div className="absolute top-[25px] left-[85px] w-32 h-6 border-2 border-yellow-500 rounded pointer-events-none" />
-                  <div className="absolute top-[60px] left-[40px] w-32 h-6 border-2 border-yellow-500 rounded pointer-events-none" />
+                  {letterElements.letterNumber.enabled && (
+                    <div 
+                      className="absolute border-2 border-yellow-500 rounded pointer-events-none" 
+                      style={{
+                        top: `${letterElements.letterNumber.y}px`,
+                        left: `${letterElements.letterNumber.x}px`,
+                        width: `${letterElements.letterNumber.width}px`,
+                        height: '20px'
+                      }}
+                    />
+                  )}
+                  
+                  {letterElements.letterDate.enabled && (
+                    <div 
+                      className="absolute border-2 border-green-500 rounded pointer-events-none" 
+                      style={{
+                        top: `${letterElements.letterDate.y}px`,
+                        left: `${letterElements.letterDate.x}px`,
+                        width: `${letterElements.letterDate.width}px`,
+                        height: '20px'
+                      }}
+                    />
+                  )}
+                  
+                  {letterElements.signature.enabled && (
+                    <div 
+                      className="absolute border-2 border-purple-500 rounded pointer-events-none" 
+                      style={{
+                        top: `${letterElements.signature.y}px`,
+                        left: `${letterElements.signature.x}px`,
+                        width: `${letterElements.signature.width}px`,
+                        height: `${letterElements.signature.height}px`
+                      }}
+                    />
+                  )}
+                  
                   <div className="absolute top-[120px] right-[35px] left-[40px] bottom-[120px] border-2 border-yellow-500 rounded pointer-events-none" />
                 </>
               )}
             
-              <div className="absolute top-[25px] left-[85px] w-32 text-right">
-                <span className="font-medium text-sm">
-                  {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
-                </span>
-              </div>
+              {/* مرجع الخطاب المركب - استخدام الموضع المخصص */}
+              {letterElements.letterNumber.enabled && (
+                <div 
+                  className="absolute"
+                  style={{
+                    top: `${letterElements.letterNumber.y}px`,
+                    left: `${letterElements.letterNumber.x}px`,
+                    width: `${letterElements.letterNumber.width}px`,
+                    textAlign: letterElements.letterNumber.alignment as "left" | "right" | "center"
+                  }}
+                >
+                  <span className="font-medium text-sm">
+                    {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+                  </span>
+                </div>
+              )}
               
-              <div className="absolute top-[60px] left-[40px] w-32 p-1 text-sm font-semibold text-center">
-                {letter.content.date}
-              </div>
+              {/* تاريخ الخطاب - استخدام الموضع المخصص */}
+              {letterElements.letterDate.enabled && (
+                <div 
+                  className="absolute"
+                  style={{
+                    top: `${letterElements.letterDate.y}px`,
+                    left: `${letterElements.letterDate.x}px`,
+                    width: `${letterElements.letterDate.width}px`,
+                    textAlign: letterElements.letterDate.alignment as "left" | "right" | "center"
+                  }}
+                >
+                  {letter.content.date}
+                </div>
+              )}
+              
+              {/* محتوى الخطاب */}
               <div 
                 dangerouslySetInnerHTML={{ __html: letter.content.body ? letter.content.body : '' }}
                 className="absolute top-[120px] right-[35px] left-[40px] bottom-[120px] p-6 text-sm overflow-y-auto"
@@ -826,37 +930,17 @@ export function ViewableLetterEditor() {
                 }}
               />
               
-              {/* رمز QR - موضع مخصص */}
-              {letter.verification_url && (
+              {/* التوقيع - إذا كان الخطاب معتمداً */}
+              {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && (
                 <div 
                   className="absolute flex flex-col items-center"
                   style={{
-                    bottom: qrPosition?.y ? 'auto' : '40px',
-                    top: qrPosition?.y ? qrPosition.y + 'px' : 'auto',
-                    right: qrPosition?.alignment === 'right' ? '40px' : 'auto',
-                    left: qrPosition?.alignment === 'left' ? '40px' : 'auto',
-                    ...(qrPosition?.alignment === 'center' ? {
-                      left: '50%',
-                      transform: 'translateX(-50%)'
-                    } : {}),
-                    ...(qrPosition?.x ? { left: qrPosition.x + 'px' } : {})
+                    top: letterElements.signature.y + 'px',
+                    left: letterElements.signature.x + 'px',
+                    width: letterElements.signature.width + 'px',
+                    height: letterElements.signature.height + 'px',
+                    textAlign: letterElements.signature.alignment as "left" | "right" | "center"
                   }}
-                >
-                  <QRCode
-                    value={`${window.location.origin}/verify/${letter.verification_url}`}
-                    size={qrPosition?.size || 80}
-                    level="H"
-                    includeMargin
-                    className="bg-white p-1.5 rounded"
-                  />
-                  <span className="text-xs text-gray-500 mt-1">رمز التحقق</span>
-                </div>
-              )}
-
-              {/* عرض التوقيع إذا كان معتمداً */}
-              {letter.signature_id && letter.workflow_status === 'approved' && (
-                <div 
-                  className="absolute bottom-40 left-40 flex flex-col items-center"
                 >
                   <img
                     src="/signature-placeholder.png" // ستحتاج لاستبدال هذا برابط التوقيع الفعلي
@@ -864,6 +948,28 @@ export function ViewableLetterEditor() {
                     className="h-20 object-contain"
                   />
                   <span className="text-xs text-gray-800 mt-1 font-bold">توقيع المعتمد</span>
+                </div>
+              )}
+              
+              {/* رمز QR - موضع مخصص */}
+              {letter.verification_url && qrPosition && (
+                <div 
+                  className="absolute flex flex-col items-center"
+                  style={{
+                    top: qrPosition.y + 'px',
+                    left: qrPosition.x + 'px',
+                    width: qrPosition.size + 'px',
+                    height: qrPosition.size + 'px'
+                  }}
+                >
+                  <QRCode
+                    value={`${window.location.origin}/verify/${letter.verification_url}`}
+                    size={qrPosition.size || 80}
+                    level="H"
+                    includeMargin
+                    className="bg-white p-1.5 rounded"
+                  />
+                  <span className="text-xs text-gray-500 mt-1">رمز التحقق</span>
                 </div>
               )}
             </div>

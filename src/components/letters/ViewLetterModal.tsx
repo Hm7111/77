@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/useToast';
 import { Letter } from '../../types/database';
 import { exportToPDF } from '../../lib/pdf-export';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
+import moment from 'moment-hijri';
 
 interface ViewLetterModalProps {
   isOpen: boolean;
@@ -22,21 +24,29 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const letterRef = useRef<HTMLDivElement>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const debugInfo = useRef<Record<string, any>>({});
 
   useEffect(() => {
     if (isOpen && letterId) {
       loadLetter();
     }
-  }, [isOpen, letterId, requestId]);
+  }, [isOpen, letterId, requestId, retryCount]);
 
   async function loadLetter() {
     setIsLoading(true);
     setError(null);
+    debugInfo.current = { 
+      letterId, 
+      requestId,
+      timestamp: new Date().toISOString(),
+      retryCount
+    };
 
     try {
       console.log('Loading letter:', letterId, 'from request:', requestId);
       
-      let letterData;
+      let letterData: any;
 
       // If we have a request ID, use the special RPC function
       if (requestId) {
@@ -44,33 +54,38 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
         
         // First get the letter ID associated with this request
         const { data: requestData, error: requestError } = await supabase.rpc(
-          'get_letter_by_request_id_v2',
+          'get_letter_by_request_id',
           { p_request_id: requestId }
         );
         
         if (requestError) {
           console.error('Error fetching letter by request ID:', requestError);
-          throw new Error('فشل في الحصول على معلومات الخطاب من طلب الموافقة');
+          debugInfo.current.requestError = requestError;
+          throw new Error(`فشل في الحصول على معلومات الخطاب من طلب الموافقة: ${requestError.message}`);
         }
         
         if (!requestData || requestData.length === 0) {
+          debugInfo.current.requestData = requestData;
           throw new Error('لم يتم العثور على الخطاب المرتبط بطلب الموافقة');
         }
         
         console.log('Letter data from request:', requestData);
+        debugInfo.current.requestData = requestData;
         
         // Now load the full letter details
         const { data: letterDetailData, error: detailError } = await supabase.rpc(
-          'get_letter_details_for_approval_v2',
+          'get_letter_details_for_approval',
           { p_letter_id: requestData[0].letter_id }
         );
         
         if (detailError) {
           console.error('Error fetching letter details:', detailError);
+          debugInfo.current.detailError = detailError;
           throw detailError;
         }
         
         if (!letterDetailData || letterDetailData.length === 0) {
+          debugInfo.current.letterDetailData = letterDetailData;
           throw new Error('فشل في تحميل تفاصيل الخطاب');
         }
         
@@ -78,8 +93,8 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
         
         // Convert to full letter object structure
         const fullLetter: Letter = {
-          id: letterData.letter_id || letterData.id,
-          user_id: '',  // Will be filled by regular fetch
+          id: letterData.letter_id,
+          user_id: requestData[0].user_id,
           template_id: letterData.template_id,
           content: letterData.content,
           status: 'completed',
@@ -87,9 +102,6 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
           year: letterData.year,
           created_at: new Date().toISOString(), // Will be updated
           updated_at: new Date().toISOString(),
-          verification_url: letterData.verification_url,
-          branch_code: letterData.branch_code,
-          letter_reference: letterData.letter_reference,
           letter_templates: {
             id: letterData.template_id,
             name: letterData.template_name,
@@ -99,7 +111,20 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
             updated_at: new Date().toISOString(),
             description: '',
             variables: [],
-            zones: []
+            zones: [],
+            // إضافة مواضع العناصر المخصصة إذا كانت متوفرة
+            letter_elements: letterData.letter_elements || {
+              letterNumber: { x: 85, y: 25, width: 32, alignment: 'right', enabled: true },
+              letterDate: { x: 40, y: 60, width: 120, alignment: 'center', enabled: true },
+              signature: { x: 40, y: 700, width: 150, height: 80, alignment: 'center', enabled: true }
+            },
+            // إضافة موضع QR إذا كان متوفر
+            qr_position: letterData.qr_position || {
+              x: 40,
+              y: 760,
+              size: 80,
+              alignment: 'right'
+            }
           }
         };
         
@@ -116,6 +141,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
 
         if (error) {
           console.error('Error fetching letter:', error);
+          debugInfo.current.letterError = error;
           throw error;
         }
         
@@ -124,9 +150,11 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
       }
       
       console.log('Letter loaded successfully:', letterData);
+      debugInfo.current.letterData = letterData;
       
     } catch (error) {
       console.error('Error loading letter:', error);
+      debugInfo.current.error = error;
       setError(error instanceof Error ? error.message : 'لم نتمكن من تحميل الخطاب');
       
       toast({
@@ -139,6 +167,11 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
     }
   }
 
+  // إعادة تحميل الخطاب
+  const handleRetryLoadLetter = () => {
+    setRetryCount(prev => prev + 1);
+  };
+
   async function handleExport() {
     if (!letter) return;
     
@@ -146,7 +179,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
     try {
       await exportToPDF(letter, {
         scale: 3.0,
-        filename: `${letter.letter_reference || `خطاب-${letter.number}-${letter.year}`}.pdf`,
+        filename: `خطاب-${letter.number || 0}-${letter.year || new Date().getFullYear()}.pdf`,
       });
       
       toast({
@@ -182,160 +215,239 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
   // Get template data from template_snapshot if available
   const templateData = letter?.template_snapshot || letter?.letter_templates;
 
+  // Get custom element positions from template if available
+  const letterElements = templateData?.letter_elements || {
+    letterNumber: { x: 85, y: 25, width: 32, alignment: 'right', enabled: true },
+    letterDate: { x: 40, y: 60, width: 120, alignment: 'center', enabled: true },
+    signature: { x: 40, y: 700, width: 150, height: 80, alignment: 'center', enabled: true }
+  };
+  
+  // Get QR position from template or default
+  const qrPosition = templateData?.qr_position || {
+    x: 40,
+    y: 760,
+    size: 80,
+    alignment: 'right'
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center overflow-auto p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col shadow-xl" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b dark:border-gray-800 flex items-center justify-between">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            {isLoading ? 'جاري تحميل الخطاب...' : letter ? `معاينة الخطاب ${letter.letter_reference || `${letter.number}/${letter.year}`}` : 'معاينة الخطاب'}
-          </h3>
-          <button 
-            onClick={onClose}
-            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        
-        <div className="flex-1 overflow-auto p-4">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-96">
-              <div className="animate-spin rounded-full h-10 w-10 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent"></div>
-            </div>
-          ) : error ? (
-            <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg text-center">
-              <div className="inline-block p-3 bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
-                <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-red-700 dark:text-red-300 mb-2">تعذر تحميل الخطاب</h3>
-              <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-              <div className="flex justify-center gap-3">
-                <button 
-                  onClick={() => loadLetter()}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  إعادة المحاولة
-                </button>
-              </div>
-            </div>
-          ) : !letter ? (
-            <div className="text-center py-16">
-              <p className="text-gray-600 dark:text-gray-400">لم يتم العثور على الخطاب</p>
-            </div>
-          ) : (
-            <div>
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">الموضوع</p>
-                    <p className="font-medium">{letter.content.subject || 'غير محدد'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">مرسل إلى</p>
-                    <p className="font-medium">{letter.content.to || 'غير محدد'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">المرجع</p>
-                    <p className="font-medium font-mono text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded inline-block">
-                      {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">التاريخ</p>
-                    <p className="font-medium">{letter.content.date || new Date(letter.created_at).toLocaleDateString('ar')}</p>
-                  </div>
-                  {letter.branch_code && (
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">الفرع</p>
-                      <p className="font-medium flex items-center gap-1.5">
-                        <Building className="h-4 w-4 text-gray-500" />
-                        <span>{letter.branch_code}</span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="relative mx-auto w-[595px] h-[842px]" ref={letterRef} style={{
-                backgroundImage: templateData?.image_url ? `url(${templateData.image_url})` : 'none',
-                backgroundSize: '100% 100%',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-                direction: 'rtl'
-              }}>
-                <div className="absolute inset-0">
-                  {/* رقم الخطاب - مرجع الخطاب المركب */}
-                  <div className="absolute top-[25px] left-[85px] w-32 text-right">
-                    <span className="font-medium text-sm">
-                      {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
-                    </span>
-                  </div>
-                  <div className="absolute top-[60px] left-[40px] w-32 p-1 text-sm font-semibold text-center">
-                    {letter.content.date}
-                  </div>
-                  <div 
-                    dangerouslySetInnerHTML={{ __html: letter.content.body || '' }}
-                    className="absolute top-[120px] right-[35px] left-[40px] bottom-[120px] p-6 text-sm bg-transparent overflow-y-auto"
-                    style={{
-                      fontFamily: 'Cairo',
-                      fontSize: '14px',
-                      lineHeight: '1.5',
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
-                      textAlign: 'right',
-                      direction: 'rtl'
-                    }}
-                  />
-                  
-                  {/* QR code */}
-                  {letter.verification_url && (
-                    <div className="absolute bottom-[40px] right-[40px] flex flex-col items-center">
-                      <QRCode
-                        value={`${window.location.origin}/verify/${letter.verification_url}`}
-                        size={80}
-                        level="H"
-                        includeMargin
-                        className="bg-white p-1.5 rounded"
-                      />
-                      <span className="text-xs text-gray-500 mt-1">رمز التحقق</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="p-4 border-t dark:border-gray-800 flex justify-between">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg"
-          >
-            إغلاق
-          </button>
-          <div className="flex gap-2">
-            <button
-              onClick={openInNewWindow}
-              className="px-4 py-2 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-lg flex items-center gap-2"
-              disabled={!letter}
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center overflow-auto p-4 backdrop-blur-sm" onClick={onClose}>
+      <ErrorBoundary>
+        <div className="bg-white dark:bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="p-5 border-b dark:border-gray-800 flex items-center justify-between">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              {isLoading ? 'جاري تحميل الخطاب...' : letter ? `معاينة الخطاب ${letter.number}/${letter.year}` : 'معاينة الخطاب'}
+            </h3>
+            <button 
+              onClick={onClose}
+              className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
-              <Eye className="h-4 w-4" />
-              فتح في نافذة جديدة
+              <X className="h-5 w-5" />
             </button>
+          </div>
+          
+          <div className="flex-1 overflow-auto p-5">
+            {isLoading ? (
+              <div className="flex flex-col justify-center items-center h-96">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400">جاري تحميل الخطاب...</p>
+              </div>
+            ) : error ? (
+              <div className="bg-red-50 dark:bg-red-900/20 p-8 rounded-lg text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
+                  <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-red-700 dark:text-red-300 mb-2">تعذر تحميل الخطاب</h3>
+                <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+                <div className="flex justify-center gap-3">
+                  <button 
+                    onClick={handleRetryLoadLetter}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    إعادة المحاولة
+                  </button>
+                </div>
+              </div>
+            ) : !letter ? (
+              <div className="text-center py-16">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
+                  <FileText className="h-8 w-8 text-gray-400 dark:text-gray-600" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">لم يتم العثور على الخطاب</h3>
+                <p className="text-gray-600 dark:text-gray-400">الخطاب غير موجود أو تم حذفه</p>
+              </div>
+            ) : (
+              <div>
+                <div className="bg-gray-50 dark:bg-gray-800 p-5 rounded-lg mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">الموضوع</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{letter.content.subject || 'غير محدد'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">مرسل إلى</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{letter.content.to || 'غير محدد'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">مرجع الخطاب</p>
+                      <p className="font-medium text-gray-900 dark:text-white font-mono">{letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">التاريخ</p>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {letter.content.date || moment(letter.created_at).format('iYYYY/iM/iD')}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {letter.creator_name && (
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">المنشئ</p>
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <p className="font-medium text-gray-900 dark:text-white">{letter.creator_name}</p>
+                      </div>
+                    </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="relative mx-auto w-[595px] h-[842px] shadow-lg rounded-lg overflow-hidden" ref={letterRef} style={{
+                  backgroundImage: templateData?.image_url ? `url(${templateData.image_url})` : 'none',
+                  backgroundSize: '100% 100%',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                  direction: 'rtl'
+                }}>
+                  <div className="absolute inset-0">
+                    {/* مرجع الخطاب المركب - استخدام الموضع المخصص من letterElements */}
+                    {letterElements.letterNumber.enabled && (
+                      <div 
+                        className="absolute"
+                        style={{
+                          top: `${letterElements.letterNumber.y}px`,
+                          left: `${letterElements.letterNumber.x}px`,
+                          width: `${letterElements.letterNumber.width}px`,
+                          textAlign: letterElements.letterNumber.alignment as "left" | "right" | "center"
+                        }}
+                      >
+                        <span className="font-medium text-sm">
+                          {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* تاريخ الخطاب - استخدام الموضع المخصص */}
+                    {letterElements.letterDate.enabled && (
+                      <div 
+                        className="absolute"
+                        style={{
+                          top: `${letterElements.letterDate.y}px`,
+                          left: `${letterElements.letterDate.x}px`,
+                          width: `${letterElements.letterDate.width}px`,
+                          textAlign: letterElements.letterDate.alignment as "left" | "right" | "center"
+                        }}
+                      >
+                        {letter.content.date}
+                      </div>
+                    )}
+                    
+                    {/* محتوى الخطاب */}
+                    <div 
+                      dangerouslySetInnerHTML={{ __html: letter.content.body || '' }}
+                      className="absolute top-[120px] right-[35px] left-[40px] bottom-[120px] p-6 text-sm bg-transparent overflow-y-auto"
+                      style={{
+                        fontFamily: 'Cairo',
+                        fontSize: '14px',
+                        lineHeight: '1.5',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        textAlign: 'right',
+                        direction: 'rtl'
+                      }}
+                    />
+                    
+                    {/* التوقيع - إذا كان الخطاب معتمداً */}
+                    {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && (
+                      <div 
+                        className="absolute flex flex-col items-center"
+                        style={{
+                          top: letterElements.signature.y + 'px',
+                          left: letterElements.signature.x + 'px',
+                          width: letterElements.signature.width + 'px',
+                          height: letterElements.signature.height + 'px',
+                          textAlign: letterElements.signature.alignment as "left" | "right" | "center"
+                        }}
+                      >
+                        <img
+                          src="/signature-placeholder.png" // ستحتاج لاستبدال هذا برابط التوقيع الفعلي
+                          alt="توقيع المعتمد"
+                          className="h-20 object-contain"
+                        />
+                        <span className="text-xs text-gray-800 mt-1 font-bold">توقيع المعتمد</span>
+                      </div>
+                    )}
+                    
+                    {/* رمز QR - موضع مخصص */}
+                    {letter.verification_url && qrPosition && (
+                      <div 
+                        className="absolute flex flex-col items-center"
+                        style={{
+                          top: qrPosition.y + 'px',
+                          left: qrPosition.x + 'px',
+                          width: qrPosition.size + 'px',
+                          height: qrPosition.size + 'px'
+                        }}
+                      >
+                        <QRCode
+                          value={`${window.location.origin}/verify/${letter.verification_url}`}
+                          size={qrPosition.size || 80}
+                          level="H"
+                          includeMargin
+                          className="bg-white p-1.5 rounded"
+                        />
+                        <span className="text-xs text-gray-500 mt-1">رمز التحقق</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="p-4 border-t dark:border-gray-800 flex justify-between">
+            <div className="flex gap-2">
+              <button
+                onClick={openInNewWindow}
+                className="px-4 py-2 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-lg flex items-center gap-2 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                disabled={!letter}
+              >
+                <Eye className="h-4 w-4" />
+                فتح في نافذة جديدة
+              </button>
+              <button
+                onClick={handleExport}
+                className="px-4 py-2 bg-primary text-white rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-colors"
+                disabled={!letter || isExporting}
+              >
+                <Download className="h-4 w-4" />
+                {isExporting ? 'جاري التصدير...' : 'تصدير PDF'}
+              </button>
+            </div>
             <button
-              onClick={handleExport}
-              className="px-4 py-2 bg-primary text-white rounded-lg flex items-center gap-2"
-              disabled={!letter || isExporting}
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
-              <Download className="h-4 w-4" />
-              {isExporting ? 'جاري التصدير...' : 'تصدير PDF'}
+              إغلاق
             </button>
           </div>
         </div>
-      </div>
+      </ErrorBoundary>
     </div>
   );
 }

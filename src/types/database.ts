@@ -30,6 +30,31 @@ export interface Template {
     size: number
     alignment: 'right' | 'center' | 'left'
   }
+  // إضافة دعم لمواضع عناصر الخطاب المخصصة
+  letter_elements?: {
+    letterNumber: {
+      x: number
+      y: number
+      width: number
+      alignment: 'right' | 'center' | 'left'
+      enabled: boolean
+    }
+    letterDate: {
+      x: number
+      y: number
+      width: number
+      alignment: 'right' | 'center' | 'left'
+      enabled: boolean
+    }
+    signature: {
+      x: number
+      y: number
+      width: number
+      height: number
+      alignment: 'right' | 'center' | 'left'
+      enabled: boolean
+    }
+  }
 }
 
 export interface TemplateCategory {
@@ -134,6 +159,31 @@ export interface Letter {
       size: number
       alignment: string
     }
+    // إضافة دعم لمواضع عناصر الخطاب المخصصة
+    letter_elements?: {
+      letterNumber: {
+        x: number
+        y: number
+        width: number
+        alignment: 'right' | 'center' | 'left'
+        enabled: boolean
+      }
+      letterDate: {
+        x: number
+        y: number
+        width: number
+        alignment: 'right' | 'center' | 'left'
+        enabled: boolean
+      }
+      signature: {
+        x: number
+        y: number
+        width: number
+        height: number
+        alignment: 'right' | 'center' | 'left'
+        enabled: boolean
+      }
+    }
     version?: number
   }
   content: Record<string, any>
@@ -142,9 +192,9 @@ export interface Letter {
   year: number
   branch_code?: string // رمز الفرع
   letter_reference?: string // مرجع الخطاب المركب
-  last_saved: string
-  local_id: string | null
-  sync_status: 'pending' | 'synced' | 'failed'
+  last_saved?: string
+  local_id?: string | null
+  sync_status?: 'pending' | 'synced' | 'failed'
   verification_url?: string
   qr_data?: Record<string, any>
   created_at: string

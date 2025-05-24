@@ -240,10 +240,17 @@ async function createLetterElement(letter: Letter, withTemplate: boolean): Promi
   // الحصول على بيانات القالب من template_snapshot إذا كانت متاحة، وإلا استخدام letter_templates
   const templateData = letter.template_snapshot || letter.letter_templates;
   
+  // الحصول على مواضع العناصر المخصصة من القالب
+  const letterElements = templateData?.letter_elements || {
+    letterNumber: { x: 85, y: 25, width: 32, alignment: 'right', enabled: true },
+    letterDate: { x: 40, y: 60, width: 120, alignment: 'center', enabled: true },
+    signature: { x: 40, y: 700, width: 150, height: 80, alignment: 'center', enabled: true }
+  };
+  
   // الحصول على موضع QR من القالب أو استخدام القيم الافتراضية
   const qrPosition = templateData?.qr_position || {
-    x: null,
-    y: null,
+    x: 40,
+    y: 760, 
     size: 80,
     alignment: 'right'
   };
@@ -293,38 +300,42 @@ async function createLetterElement(letter: Letter, withTemplate: boolean): Promi
     direction: rtl;
   `;
   
-  // مرجع الخطاب المركب
-  const referenceElement = document.createElement('div');
-  referenceElement.style.cssText = `
-    position: absolute;
-    top: 25px;
-    left: 85px;
-    width: 32px;
-    text-align: right;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: 'Cairo', sans-serif;
-    color: #000;
-  `;
-  referenceElement.textContent = letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`;
-  contentLayer.appendChild(referenceElement);
+  // مرجع الخطاب المركب - استخدام الموضع المخصص
+  if (letterElements.letterNumber.enabled) {
+    const referenceElement = document.createElement('div');
+    referenceElement.style.cssText = `
+      position: absolute;
+      top: ${letterElements.letterNumber.y}px;
+      left: ${letterElements.letterNumber.x}px;
+      width: ${letterElements.letterNumber.width}px;
+      text-align: ${letterElements.letterNumber.alignment};
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Cairo', sans-serif;
+      color: #000;
+    `;
+    referenceElement.textContent = letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`;
+    contentLayer.appendChild(referenceElement);
+  }
   
-  // تاريخ الخطاب
-  const dateElement = document.createElement('div');
-  dateElement.style.cssText = `
-    position: absolute;
-    top: 60px;
-    left: 40px;
-    width: 120px;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: 'Cairo', sans-serif;
-    color: #000;
-    transform: translateY(-5px);
-  `;
-  dateElement.textContent = letter.content.date || '';
-  contentLayer.appendChild(dateElement);
+  // تاريخ الخطاب - استخدام الموضع المخصص
+  if (letterElements.letterDate.enabled) {
+    const dateElement = document.createElement('div');
+    dateElement.style.cssText = `
+      position: absolute;
+      top: ${letterElements.letterDate.y}px;
+      left: ${letterElements.letterDate.x}px;
+      width: ${letterElements.letterDate.width}px;
+      text-align: ${letterElements.letterDate.alignment};
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Cairo', sans-serif;
+      color: #000;
+      transform: translateY(-5px);
+    `;
+    dateElement.textContent = letter.content.date || '';
+    contentLayer.appendChild(dateElement);
+  }
   
   // محتوى الخطاب
   const bodyElement = document.createElement('div');
@@ -378,12 +389,10 @@ async function createLetterElement(letter: Letter, withTemplate: boolean): Promi
     const qrContainer = document.createElement('div');
     qrContainer.style.cssText = `
       position: absolute;
-      bottom: ${qrPosition?.y ? 'auto' : '40px'};
-      top: ${qrPosition?.y ? qrPosition.y + 'px' : 'auto'};
-      right: ${qrPosition?.alignment === 'right' ? '40px' : 'auto'};
-      left: ${qrPosition?.alignment === 'left' ? '40px' : 'auto'};
-      ${qrPosition?.alignment === 'center' ? 'left: 50%; transform: translateX(-50%);' : ''}
-      ${qrPosition?.x ? 'left: ' + qrPosition.x + 'px;' : ''}
+      top: ${qrPosition.y}px;
+      left: ${qrPosition.x}px;
+      width: ${qrPosition.size}px;
+      height: ${qrPosition.size}px;
       text-align: center;
       z-index: 2;
       transform: translateY(-5px);
@@ -392,8 +401,8 @@ async function createLetterElement(letter: Letter, withTemplate: boolean): Promi
     // إنشاء صورة QR - تحسين: استخدام صورة مسبقة التحميل
     const qrWrapper = document.createElement('div');
     qrWrapper.style.cssText = `
-      width: ${qrPosition?.size || 80}px;
-      height: ${qrPosition?.size || 80}px;
+      width: ${qrPosition.size}px;
+      height: ${qrPosition.size}px;
       padding: 4px;
       background: white;
       border-radius: 4px;
@@ -431,6 +440,46 @@ async function createLetterElement(letter: Letter, withTemplate: boolean): Promi
     qrContainer.appendChild(qrLabel);
     
     contentLayer.appendChild(qrContainer);
+  }
+  
+  // إضافة التوقيع إذا كان الخطاب معتمداً
+  if (letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled) {
+    const signatureContainer = document.createElement('div');
+    signatureContainer.style.cssText = `
+      position: absolute;
+      top: ${letterElements.signature.y}px;
+      left: ${letterElements.signature.x}px;
+      width: ${letterElements.signature.width}px;
+      height: ${letterElements.signature.height}px;
+      text-align: ${letterElements.signature.alignment};
+      z-index: 2;
+    `;
+    
+    // هنا يجب استبدال هذا برابط التوقيع الفعلي
+    const signatureImg = document.createElement('img');
+    signatureImg.src = "/signature-placeholder.png";
+    signatureImg.alt = "توقيع المعتمد";
+    signatureImg.style.cssText = `
+      height: 80%;
+      max-width: 100%;
+      object-fit: contain;
+    `;
+    
+    signatureContainer.appendChild(signatureImg);
+    
+    // إضافة تسمية التوقيع
+    const signatureLabel = document.createElement('div');
+    signatureLabel.style.cssText = `
+      font-size: 10px;
+      color: #444;
+      margin-top: 4px;
+      font-family: 'Cairo', sans-serif;
+      font-weight: bold;
+    `;
+    signatureLabel.textContent = 'توقيع المعتمد';
+    signatureContainer.appendChild(signatureLabel);
+    
+    contentLayer.appendChild(signatureContainer);
   }
   
   container.appendChild(contentLayer);

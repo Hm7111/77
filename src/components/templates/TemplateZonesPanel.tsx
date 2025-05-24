@@ -141,7 +141,7 @@ export function TemplateZonesPanel({ templateId }: TemplateZonesPanelProps) {
           className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center gap-2"
         >
           <Settings className="h-4 w-4" />
-          تعديل مناطق الكتابة
+          تعديل مناطق الكتابة وعناصر الخطاب
         </button>
       </div>
 
@@ -224,6 +224,23 @@ export function TemplateZonesPanel({ templateId }: TemplateZonesPanelProps) {
                   </div>
                 ))}
               </div>
+
+              <div className="mt-8 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/30">
+                <h4 className="text-lg font-semibold mb-2 text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
+                  <Info className="h-5 w-5" />
+                  مواضع العناصر الثابتة
+                </h4>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+                  يمكنك الآن تخصيص مواضع العناصر الثابتة في القالب مثل رقم الخطاب وتاريخه وموضع التوقيع من خلال الضغط على زر "تعديل مناطق الكتابة وعناصر الخطاب".
+                </p>
+                <button
+                  onClick={handleEditZones}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 flex items-center gap-2 w-fit"
+                >
+                  <Settings className="h-4 w-4" />
+                  تعديل مواضع العناصر
+                </button>
+              </div>
             </div>
           )}
         </TabsContent>
@@ -232,51 +249,54 @@ export function TemplateZonesPanel({ templateId }: TemplateZonesPanelProps) {
           <div className="bg-white dark:bg-gray-900 rounded-lg p-6 border dark:border-gray-800">
             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
               <Info className="h-5 w-5 text-primary" />
-              كيفية استخدام مناطق الكتابة
+              كيفية استخدام مناطق الكتابة والعناصر المخصصة
             </h3>
             
             <p className="mb-4">
-              مناطق الكتابة هي أداة قوية لتخصيص قوالب الخطابات. تسمح لك بتحديد المساحات التي يمكن للمستخدمين الكتابة فيها، وتحديد خصائص النص لكل منطقة.
+              مناطق الكتابة والعناصر المخصصة هي أدوات قوية لتخصيص قوالب الخطابات. تسمح لك بتحديد المساحات التي يمكن للمستخدمين الكتابة فيها، وتخصيص مواضع العناصر الثابتة مثل رقم الخطاب وتاريخه وموضع التوقيع.
             </p>
             
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <h4 className="font-semibold mb-2">فوائد مناطق الكتابة:</h4>
-                <ul className="list-disc list-inside space-y-1 mr-4">
-                  <li>تنظيم محتوى الخطابات بشكل متناسق</li>
-                  <li>تحديد أماكن النصوص بدقة على القالب</li>
-                  <li>تخصيص خصائص الخط والمحاذاة لكل جزء من الخطاب</li>
-                  <li>سهولة إنشاء خطابات متناسقة ومهنية</li>
-                </ul>
+                <h4 className="font-semibold mb-2 flex items-center gap-1.5 text-blue-800 dark:text-blue-400">
+                  <Layers className="h-4 w-4" />
+                  <span>مناطق الكتابة</span>
+                </h4>
+                <p className="text-blue-700 dark:text-blue-400 text-sm">
+                  مناطق الكتابة تحدد المساحات المسموح للمستخدمين الكتابة فيها في القالب، وتتضمن خصائص مثل الموضع والحجم ونوع الخط وحجمه ومحاذاة النص.
+                </p>
               </div>
-              
+
               <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <h4 className="font-semibold mb-2">خصائص مناطق الكتابة:</h4>
-                <ul className="list-disc list-inside space-y-1 mr-4">
-                  <li>
-                    <strong>الموضع والحجم:</strong> تحديد مكان وحجم منطقة الكتابة على القالب
-                  </li>
-                  <li>
-                    <strong>نوع الخط:</strong> تحديد الخط الذي سيظهر به النص
-                  </li>
-                  <li>
-                    <strong>حجم الخط:</strong> تحديد حجم النص في المنطقة
-                  </li>
-                  <li>
-                    <strong>المحاذاة:</strong> تحديد محاذاة النص (يمين، وسط، يسار)
-                  </li>
+                <h4 className="font-semibold mb-2 flex items-center gap-1.5 text-green-800 dark:text-green-400">
+                  <Settings className="h-4 w-4" />
+                  <span>العناصر الثابتة المخصصة</span>
+                </h4>
+                <p className="text-green-700 dark:text-green-400 text-sm">
+                  الميزة الجديدة تتيح لك تخصيص مواضع العناصر الثابتة في الخطاب مثل:
+                </p>
+                <ul className="list-disc mr-6 mt-2 space-y-1 text-sm text-green-700 dark:text-green-400">
+                  <li>موضع رقم الخطاب وعرضه ومحاذاته</li>
+                  <li>موضع تاريخ الخطاب وعرضه ومحاذاته</li>
+                  <li>موضع وأبعاد التوقيع ومحاذاته</li>
+                  <li>موضع رمز QR وحجمه</li>
                 </ul>
               </div>
-              
+
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                <h4 className="font-semibold mb-2">خطوات إعداد المناطق:</h4>
-                <ol className="list-decimal list-inside space-y-1 mr-4">
-                  <li>انقر على "تعديل مناطق الكتابة" للبدء</li>
-                  <li>استخدم زر "إضافة منطقة" لإضافة منطقة جديدة للقالب</li>
-                  <li>اسحب المنطقة إلى المكان المناسب على القالب</li>
-                  <li>استخدم المقابض لتغيير حجم المنطقة</li>
-                  <li>عدل خصائص المنطقة من لوحة الإعدادات</li>
-                  <li>انقر على "حفظ" لحفظ التغييرات</li>
+                <h4 className="font-semibold mb-2 flex items-center gap-1.5 text-purple-800 dark:text-purple-400">
+                  <DivideSquare className="h-4 w-4" />
+                  <span>كيفية تخصيص المواضع</span>
+                </h4>
+                <p className="text-purple-700 dark:text-purple-400 text-sm">
+                  لتخصيص مواضع العناصر:
+                </p>
+                <ol className="list-decimal mr-6 mt-2 space-y-1 text-sm text-purple-700 dark:text-purple-400">
+                  <li>انقر على "تعديل مناطق الكتابة وعناصر الخطاب" في الأعلى</li>
+                  <li>اختر تبويب "العناصر الثابتة" في محرر المناطق</li>
+                  <li>اسحب العناصر (رقم الخطاب، التاريخ، التوقيع) لتحديد مواضعها</li>
+                  <li>يمكنك تعديل أبعاد كل عنصر ومحاذاته من خلال لوحة الإعدادات</li>
+                  <li>احفظ التغييرات عند الانتهاء</li>
                 </ol>
               </div>
             </div>

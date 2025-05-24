@@ -31,6 +31,21 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
     // استخدام template_snapshot إذا كان متاحاً، وإلا استخدام letter_templates
     const templateData = letter.template_snapshot || letter.letter_templates;
     
+    // الحصول على مواضع العناصر المخصصة من القالب
+    const letterElements = templateData?.letter_elements || {
+      letterNumber: { x: 85, y: 25, width: 32, alignment: 'right', enabled: true },
+      letterDate: { x: 40, y: 60, width: 120, alignment: 'center', enabled: true },
+      signature: { x: 40, y: 700, width: 150, height: 80, alignment: 'center', enabled: true }
+    };
+    
+    // الحصول على موضع QR من القالب أو استخدام القيم الافتراضية
+    const qrPosition = templateData?.qr_position || {
+      x: 40,
+      y: 760, 
+      size: 80,
+      alignment: 'right'
+    };
+    
     // انتظار تحميل الخط
     await document.fonts.ready;
 
@@ -109,62 +124,6 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
               background-size: 100% 100%;
               background-repeat: no-repeat;
             }
-            .letter-reference {
-              position: absolute;
-              top: 25px;
-              left: 85px;
-              width: 32px;
-              text-align: right;
-              font-size: 14px;
-              font-weight: 600;
-              font-family: 'Cairo', sans-serif;
-            }
-            .letter-date {
-              position: absolute;
-              top: 60px;
-              left: 40px;
-              width: 120px;
-              text-align: center;
-              font-size: 14px;
-              font-weight: 600;
-              direction: ltr;
-            }
-            .letter-content {
-              position: absolute;
-              top: 120px;
-              right: 35px;
-              left: 40px;
-              padding: 24px;
-              font-size: 14px;
-              line-height: 1.8;
-              text-align: right;
-              direction: rtl;
-              white-space: pre-wrap;
-            }
-            .qr-code {
-              position: absolute;
-              bottom: 40px;
-              right: 40px;
-              text-align: center;
-            }
-            .qr-code img {
-              width: 80px;
-              height: 80px;
-              background: white;
-              padding: 4px;
-              border-radius: 4px;
-            }
-            .qr-code-text {
-              margin-top: 4px;
-              font-size: 10px;
-              color: #666;
-            }
-            /* تحسين عرض الأسطر الفارغة */
-            br {
-              display: block !important;
-              content: "" !important;
-              margin-top: 0.3em !important;
-            }
       `;
     } else {
       pageHtml += `
@@ -188,13 +147,6 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
               display: flex;
               flex-direction: column;
             }
-            .letter-reference {
-              font-weight: 600;
-              margin-bottom: 10px;
-            }
-            .letter-date {
-              font-weight: 600;
-            }
             .letter-content {
               margin-bottom: 40px;
               font-size: 14px;
@@ -211,34 +163,84 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
               border-top: 1px solid #eee;
               padding-top: 20px;
             }
+      `;
+    }
+
+    // إضافة نمط لعناصر الخطاب المخصصة
+    pageHtml += `
+            /* مرجع الخطاب المركب - يستخدم الموضع المخصص */
+            .letter-number {
+              position: absolute;
+              top: ${letterElements.letterNumber.y}px;
+              left: ${letterElements.letterNumber.x}px;
+              width: ${letterElements.letterNumber.width}px;
+              text-align: ${letterElements.letterNumber.alignment};
+              font-size: 14px;
+              font-weight: 600;
+              font-family: 'Cairo', sans-serif;
+            }
+            
+            /* تاريخ الخطاب - يستخدم الموضع المخصص */
+            .letter-date {
+              position: absolute;
+              top: ${letterElements.letterDate.y}px;
+              left: ${letterElements.letterDate.x}px;
+              width: ${letterElements.letterDate.width}px;
+              text-align: ${letterElements.letterDate.alignment};
+              font-size: 14px;
+              font-weight: 600;
+            }
+            
+            /* محتوى الخطاب */
+            .letter-content {
+              position: absolute;
+              top: 120px;
+              right: 35px;
+              left: 40px;
+              padding: 24px;
+              font-size: 14px;
+              line-height: 1.8;
+              text-align: right;
+              direction: rtl;
+              white-space: pre-wrap;
+            }
+            
+            /* رمز QR */
             .qr-code {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-            }
-            .qr-code img {
-              width: 100px;
-              height: 100px;
-              padding: 5px;
-              background: white;
-              border: 1px solid #eee;
-              border-radius: 4px;
-            }
-            .qr-code-text {
-              margin-top: 5px;
-              font-size: 12px;
-              color: #666;
+              position: absolute;
+              top: ${qrPosition.y}px;
+              left: ${qrPosition.x}px;
+              width: ${qrPosition.size}px;
+              height: ${qrPosition.size}px;
               text-align: center;
             }
+            
+            .qr-code img {
+              width: 100%;
+              height: 100%;
+              background: white;
+              padding: 4px;
+              border-radius: 4px;
+            }
+            
+            /* التوقيع */
+            .signature {
+              position: absolute;
+              top: ${letterElements.signature.y}px;
+              left: ${letterElements.signature.x}px;
+              width: ${letterElements.signature.width}px;
+              height: ${letterElements.signature.height}px;
+              text-align: ${letterElements.signature.alignment};
+            }
+            
             /* تحسين عرض الأسطر الفارغة */
             br {
               display: block !important;
               content: "" !important;
-              margin-top: 0.7em !important;
+              margin-top: 0.3em !important;
             }
       `;
-    }
-
+    
     pageHtml += `
           </style>
         </head>
@@ -256,25 +258,37 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
     `;
 
     // جزء محتوى الخطاب استناداً إلى الخيار المحدد
-    if (withTemplate && templateData?.image_url) {
-      pageHtml += `
-        <div class="letter-container">
-          <div class="letter-reference">${letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}</div>
-          <div class="letter-date">${letter.content.date || ''}</div>
-          <div class="letter-content">${letter.content.body || ''}</div>
+    pageHtml += `
+      <div class="letter-container">
     `;
-    } else {
+
+    // مرجع الخطاب - استخدام الموضع المخصص
+    if (letterElements.letterNumber.enabled) {
       pageHtml += `
-        <div class="letter-container">
-          <div class="letter-header">
-            <div class="letter-info">
-              <div class="letter-reference">المرجع: ${letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}</div>
-              <div class="letter-date">التاريخ: ${letter.content.date || ''}</div>
-            </div>
-          </div>
-          <div class="letter-content">${letter.content.body || ''}</div>
-          <div class="letter-footer">
+        <div class="letter-number">${letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}</div>
+      `;
+    }
+    
+    // تاريخ الخطاب - استخدام الموضع المخصص
+    if (letterElements.letterDate.enabled) {
+      pageHtml += `
+        <div class="letter-date">${letter.content.date || ''}</div>
+      `;
+    }
+    
+    // محتوى الخطاب
+    pageHtml += `
+      <div class="letter-content">${letter.content.body || ''}</div>
     `;
+    
+    // التوقيع - إذا كان الخطاب معتمداً
+    if (letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled) {
+      pageHtml += `
+        <div class="signature">
+          <img src="/signature-placeholder.png" alt="توقيع المعتمد" style="height: 80%; max-width: 100%; object-fit: contain;">
+          <div style="font-size: 10px; margin-top: 4px; font-weight: bold;">توقيع المعتمد</div>
+        </div>
+      `;
     }
     
     // إضافة رمز QR
@@ -284,12 +298,12 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
       pageHtml += `
             <div class="qr-code">
               <img 
-                src="https://api.qrserver.com/v1/create-qr-code/?size=${withTemplate ? '80x80' : '100x100'}&data=${encodeURIComponent(
+                src="https://api.qrserver.com/v1/create-qr-code/?size=${qrPosition.size}x${qrPosition.size}&data=${encodeURIComponent(
                   `${window.location.origin}/verify/${verificationUrl}`
                 )}" 
                 alt="رمز التحقق"
               >
-              <div class="qr-code-text">رمز التحقق</div>
+              <div style="font-size: 10px; color: #666; margin-top: 4px;">رمز التحقق</div>
             </div>
       `;
     }
