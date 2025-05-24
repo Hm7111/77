@@ -206,22 +206,50 @@ export function LetterEditor() {
 
   async function handleSubmit(e?: React.FormEvent) {
     if (e) e.preventDefault();
+    
+    // Validate required fields first
+    if (!dbUser?.id || !templateId) {
+      toast({
+        title: 'خطأ',
+        description: 'يجب تسجيل الدخول واختيار قالب',
+        type: 'error'
+      });
+      return;
+    }
+
+    if (!content.subject?.trim()) {
+      toast({
+        title: 'حقل مطلوب',
+        description: 'يجب إدخال موضوع الخطاب',
+        type: 'error'
+      });
+      setActiveStep(1); // Return to basic info step
+      return;
+    }
+
+    if (!content.to?.trim()) {
+      toast({
+        title: 'حقل مطلوب',
+        description: 'يجب إدخال الجهة المرسل إليها',
+        type: 'error'
+      });
+      setActiveStep(1); // Return to basic info step
+      return;
+    }
+
+    if (!content.body?.trim()) {
+      toast({
+        title: 'حقل مطلوب',
+        description: 'يجب إدخال محتوى الخطاب',
+        type: 'error'
+      });
+      return;
+    }
+
     setIsLoading(true);
     const verificationUrl = crypto.randomUUID();
 
     try {
-      if (!dbUser?.id || !templateId) {
-        throw new Error('يجب تسجيل الدخول واختيار قالب');
-      }
-
-      if (!content.subject || !content.to) {
-        throw new Error('يجب إدخال موضوع الخطاب والجهة المرسل إليها');
-      }
-
-      if (!content.body) {
-        throw new Error('يجب إدخال محتوى الخطاب');
-      }
-
       // Store template snapshot data in content to ensure it's preserved
       const templateSnapshot = selectedTemplate ? {
         id: selectedTemplate.id,
