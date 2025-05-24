@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Eye, Download, FileText, RefreshCw, AlertCircle, Calendar, User } from 'lucide-react';
+import { X, Eye, Download, FileText, RefreshCw, AlertCircle, Calendar, User, Building } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/useToast';
 import { Letter } from '../../types/database';
@@ -42,7 +42,6 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
 
   async function loadSignature(signatureId: string) {
     try {
-      // Remove .single() to handle cases where zero or multiple rows are returned
       const { data, error } = await supabase
         .from('signatures')
         .select('signature_url')
@@ -430,7 +429,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                           alt="توقيع المعتمد"
                           className="h-20 object-contain"
                         />
-                        <div style={{fontSize: "10px", color: "#666", marginTop: "4px", fontWeight: "bold"}}>توقيع المعتمد</div>
+                        <span className="text-xs text-gray-800 mt-1 font-bold">توقيع المعتمد</span>
                       </div>
                     )}
                     

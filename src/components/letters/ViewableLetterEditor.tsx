@@ -63,7 +63,6 @@ export function ViewableLetterEditor() {
 
   async function loadSignature(signatureId: string) {
     try {
-      // Remove .single() to handle cases where zero or multiple rows are returned
       const { data, error } = await supabase
         .from('signatures')
         .select('signature_url')
@@ -75,7 +74,6 @@ export function ViewableLetterEditor() {
       }
       
       if (data && data.length > 0) {
-        // If we have data, use the first signature
         setSignatureUrl(data[0].signature_url);
         
         // Log a warning if multiple signatures were found
@@ -154,6 +152,7 @@ export function ViewableLetterEditor() {
           letter_reference: letterData.letter_reference, // إضافة مرجع الخطاب
           created_at: new Date().toISOString(), // Will be updated
           updated_at: new Date().toISOString(),
+          signature_id: letterData.signature_id, // تضمين معرف التوقيع
           letter_templates: {
             id: letterData.template_id,
             name: letterData.template_name,
@@ -163,7 +162,18 @@ export function ViewableLetterEditor() {
             updated_at: new Date().toISOString(),
             description: '',
             variables: [],
-            zones: []
+            zones: [],
+            letter_elements: letterData.letter_elements || {
+              letterNumber: { x: 85, y: 25, width: 32, alignment: 'right', enabled: true },
+              letterDate: { x: 40, y: 60, width: 120, alignment: 'center', enabled: true },
+              signature: { x: 40, y: 700, width: 150, height: 80, alignment: 'center', enabled: true }
+            },
+            qr_position: letterData.qr_position || {
+              x: 40,
+              y: 760,
+              size: 80,
+              alignment: 'right'
+            }
           }
         };
         
@@ -178,10 +188,7 @@ export function ViewableLetterEditor() {
           .eq('id', id)
           .single();
 
-        if (error) {
-          console.error('Error fetching letter:', error);
-          throw error;
-        }
+        if (error) throw error;
         
         letterData = data;
         setLetter(data);
@@ -553,14 +560,15 @@ export function ViewableLetterEditor() {
                 
                 {/* محتوى الخطاب */}
                 <div 
-                  dangerouslySetInnerHTML={{ __html: letter.content.body || '' }}
-                  className="absolute top-[120px] right-[35px] left-[40px] bottom-[120px] p-6 text-sm bg-transparent overflow-y-auto"
+                  dangerouslySetInnerHTML={{ __html: letter.content.body ? letter.content.body : '' }}
+                  className="absolute top-[120px] right-[35px] left-[40px] bottom-[120px] p-6 text-sm overflow-y-auto"
                   style={{
                     fontFamily: 'Cairo',
                     fontSize: '14px',
                     lineHeight: lineHeight.toString() || '1.5',
                     wordBreak: 'break-word',
                     overflowWrap: 'break-word',
+                    whiteSpace: 'pre-wrap',
                     textAlign: 'right',
                     direction: 'rtl'
                   }}
