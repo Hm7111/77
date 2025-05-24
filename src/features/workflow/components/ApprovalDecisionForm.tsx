@@ -62,6 +62,16 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
   
   // معالجة الموافقة
   async function handleApprove() {
+    // التحقق من حالة الطلب قبل المتابعة
+    if (request.status === 'approved') {
+      toast({
+        title: 'تنبيه',
+        description: 'تم الموافقة على هذا الطلب مسبقاً',
+        type: 'warning',
+      });
+      return;
+    }
+
     if (!selectedSignatureId) {
       console.error('No signature selected');
       toast({
@@ -142,6 +152,9 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       diagnoseError(error);
     }
   }
+
+  // التحقق من حالة الطلب لتعطيل زر الموافقة إذا كان الطلب موافق عليه مسبقاً
+  const isApproved = request.status === 'approved';
   
   return (
     <div className="space-y-4">
@@ -154,8 +167,9 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
               tab === 'approve'
                 ? 'bg-primary text-white'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
-            onClick={() => setTab('approve')}
+            } ${isApproved ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => !isApproved && setTab('approve')}
+            disabled={isApproved}
           >
             <CheckCircle className="h-4 w-4 inline-block ml-1" />
             موافقة
@@ -175,6 +189,16 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
         </div>
       </div>
 
+      {/* تنبيه إذا كان الطلب موافق عليه مسبقاً */}
+      {isApproved && tab === 'approve' && (
+        <div className="p-4">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/30 rounded-lg p-3 text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <p>تم الموافقة على هذا الطلب مسبقاً</p>
+          </div>
+        </div>
+      )}
+
       {/* نموذج الموافقة */}
       {tab === 'approve' && (
         <div className="p-4 space-y-4">
@@ -187,8 +211,10 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
                 {signatures.map((sig) => (
                   <div
                     key={sig.id}
-                    onClick={() => setSelectedSignatureId(sig.id)}
-                    className={`border p-3 rounded-lg cursor-pointer ${
+                    onClick={() => !isApproved && setSelectedSignatureId(sig.id)}
+                    className={`border p-3 rounded-lg ${
+                      isApproved ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                    } ${
                       selectedSignatureId === sig.id
                         ? 'border-primary bg-primary/5 dark:bg-primary/10'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -241,6 +267,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
               onChange={(e) => setComments(e.target.value)}
               className="w-full p-3 border dark:border-gray-700 rounded-lg h-24 resize-none"
               placeholder="أضف أي ملاحظات أو تعليقات على الموافقة..."
+              disabled={isApproved}
             />
           </div>
           
@@ -248,7 +275,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
             <button
               type="button"
               onClick={handleApprove}
-              disabled={isLoading || (!selectedSignatureId && signatures.length > 0)}
+              disabled={isLoading || (!selectedSignatureId && signatures.length > 0) || isApproved}
               className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isLoading ? (
