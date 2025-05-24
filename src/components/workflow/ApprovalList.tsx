@@ -17,7 +17,11 @@ import {
   ClipboardList,
   ChevronDown,
   BookOpen,
-  FileText
+  FileText,
+  SortAsc,
+  SortDesc,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import { ApprovalRequestModal } from './ApprovalRequestModal';
 import { ApprovalDecisionModal } from './ApprovalDecisionModal';
