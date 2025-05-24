@@ -34,7 +34,7 @@
       email,
       full_name: fullName,
       role,
-      branch_id: branchId,
+     branch_id: branchId || null,
       password,
       is_active: isActive
     };

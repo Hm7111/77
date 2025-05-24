@@ -176,7 +176,7 @@ export function useUsers() {
           email: userData.email,
           full_name: userData.full_name,
           role: userData.role,
-          branch_id: userData.branch_id,
+         branch_id: userData.branch_id || null,
           is_active: userData.is_active,
           permissions: userData.permissions,
           updated_at: new Date().toISOString()
@@ -198,6 +198,8 @@ export function useUsers() {
       // تحديث البيانات في واجهة المستخدم
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['user', userId] });
+     // تحديث بيانات المستخدم الحالي إذا كان هو نفسه المستخدم الذي تم تحديثه
+     queryClient.invalidateQueries({ queryKey: ['user', userId] });
       
       toast({
         title: 'تم التحديث',

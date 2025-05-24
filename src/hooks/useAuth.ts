@@ -78,10 +78,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       try {
         // Query by id instead of email since we have a foreign key constraint with auth.users
+        // Use RPC function to get user with complete branch details
         const { data, error } = await supabase
-          .from('users')
-          .select('*, branches(*)')
-          .eq('id', user.id)
+          .rpc('get_user_with_branch_details', { user_id: user.id })
           .single()
         
         if (error) {
