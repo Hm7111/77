@@ -26,12 +26,40 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
   const letterRef = useRef<HTMLDivElement>(null);
   const [retryCount, setRetryCount] = useState(0);
   const debugInfo = useRef<Record<string, any>>({});
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && letterId) {
       loadLetter();
     }
   }, [isOpen, letterId, requestId, retryCount]);
+
+  useEffect(() => {
+    if (letter?.signature_id) {
+      loadSignature(letter.signature_id);
+    }
+  }, [letter?.signature_id]);
+
+  async function loadSignature(signatureId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('signatures')
+        .select('signature_url')
+        .eq('id', signatureId)
+        .single();
+        
+      if (error) {
+        console.error('Error loading signature:', error);
+        return;
+      }
+      
+      if (data) {
+        setSignatureUrl(data.signature_url);
+      }
+    } catch (error) {
+      console.error('Error loading signature:', error);
+    }
+  }
 
   async function loadLetter() {
     setIsLoading(true);
@@ -102,6 +130,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
           year: letterData.year,
           created_at: new Date().toISOString(), // Will be updated
           updated_at: new Date().toISOString(),
+          signature_id: letterData.signature_id, // تضمين معرف التوقيع
           letter_templates: {
             id: letterData.template_id,
             name: letterData.template_name,
@@ -316,7 +345,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                   </div>
                 </div>
                 
-                <div className="relative mx-auto w-[595px] h-[842px] shadow-lg rounded-lg overflow-hidden" ref={letterRef} style={{
+                <div className="relative mx-auto w-[595px] h-[842px]" ref={letterRef} style={{
                   backgroundImage: templateData?.image_url ? `url(${templateData.image_url})` : 'none',
                   backgroundSize: '100% 100%',
                   backgroundPosition: 'center',
@@ -373,7 +402,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                     />
                     
                     {/* التوقيع - إذا كان الخطاب معتمداً */}
-                    {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && (
+                    {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && signatureUrl && (
                       <div 
                         className="absolute flex flex-col items-center"
                         style={{
@@ -385,7 +414,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                         }}
                       >
                         <img
-                          src="/signature-placeholder.png" // ستحتاج لاستبدال هذا برابط التوقيع الفعلي
+                          src={signatureUrl}
                           alt="توقيع المعتمد"
                           className="h-20 object-contain"
                         />
@@ -393,8 +422,8 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                       </div>
                     )}
                     
-                    {/* رمز QR - موضع مخصص */}
-                    {letter.verification_url && qrPosition && (
+                    {/* رمز QR */}
+                    {letter.verification_url && (
                       <div 
                         className="absolute flex flex-col items-center"
                         style={{
@@ -406,12 +435,12 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                       >
                         <QRCode
                           value={`${window.location.origin}/verify/${letter.verification_url}`}
-                          size={qrPosition.size || 80}
+                          size={qrPosition.size}
                           level="H"
                           includeMargin
                           className="bg-white p-1.5 rounded"
                         />
-                        <span className="text-xs text-gray-500 mt-1">رمز التحقق</span>
+                        <div style="font-size: 10px; color: #666; margin-top: 4px;">رمز التحقق</div>
                       </div>
                     )}
                   </div>

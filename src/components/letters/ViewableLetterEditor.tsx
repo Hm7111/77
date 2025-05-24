@@ -35,6 +35,7 @@ export function ViewableLetterEditor() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [showGuides, setShowGuides] = useState(false);
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
 
   // Check if we're coming from an approval context
   const [isFromApproval, setIsFromApproval] = useState(false);
@@ -54,11 +55,38 @@ export function ViewableLetterEditor() {
     loadLetter();
   }, [id, location.search, retryCount]);
 
+  useEffect(() => {
+    if (letter?.signature_id) {
+      loadSignature(letter.signature_id);
+    }
+  }, [letter?.signature_id]);
+
+  async function loadSignature(signatureId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('signatures')
+        .select('signature_url')
+        .eq('id', signatureId)
+        .single();
+        
+      if (error) {
+        console.error('Error loading signature:', error);
+        return;
+      }
+      
+      if (data) {
+        setSignatureUrl(data.signature_url);
+      }
+    } catch (error) {
+      console.error('Error loading signature:', error);
+    }
+  }
+
   async function loadLetter() {
     if (!id) return;
     
     setIsLoading(true);
-    setLoadError(null);
+    setError(null);
     
     try {
       console.log('Loading letter with ID:', id);
@@ -516,7 +544,7 @@ export function ViewableLetterEditor() {
                 {/* محتوى الخطاب */}
                 <div 
                   dangerouslySetInnerHTML={{ __html: letter.content.body || '' }}
-                  className="absolute top-[120px] right-[35px] left-[40px] bottom-[120px] p-6 text-sm"
+                  className="absolute top-[120px] right-[35px] left-[40px] bottom-[120px] p-6 text-sm bg-transparent overflow-y-auto"
                   style={{
                     fontFamily: 'Cairo',
                     fontSize: '14px',
@@ -529,7 +557,7 @@ export function ViewableLetterEditor() {
                 />
                 
                 {/* التوقيع - إذا كان الخطاب معتمداً */}
-                {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && (
+                {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && signatureUrl && (
                   <div 
                     className="absolute flex flex-col items-center"
                     style={{
@@ -541,7 +569,7 @@ export function ViewableLetterEditor() {
                     }}
                   >
                     <img
-                      src="/signature-placeholder.png" // ستحتاج لاستبدال هذا برابط التوقيع الفعلي
+                      src={signatureUrl}
                       alt="توقيع المعتمد"
                       className="h-20 object-contain"
                     />
@@ -839,7 +867,6 @@ export function ViewableLetterEditor() {
             }}
           >
             <div className="absolute inset-0">
-              {/* النقاط الإرشادية للمرجع والتاريخ */}
               {showGuides && (
                 <>
                   {letterElements.letterNumber.enabled && (
@@ -931,7 +958,7 @@ export function ViewableLetterEditor() {
               />
               
               {/* التوقيع - إذا كان الخطاب معتمداً */}
-              {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && (
+              {letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled && signatureUrl && (
                 <div 
                   className="absolute flex flex-col items-center"
                   style={{
@@ -943,7 +970,7 @@ export function ViewableLetterEditor() {
                   }}
                 >
                   <img
-                    src="/signature-placeholder.png" // ستحتاج لاستبدال هذا برابط التوقيع الفعلي
+                    src={signatureUrl}
                     alt="توقيع المعتمد"
                     className="h-20 object-contain"
                   />
