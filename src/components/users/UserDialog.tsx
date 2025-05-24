@@ -55,6 +55,7 @@ export function UserDialog({ user, isOpen, onClose, onSuccess }: Props) {
   async function handleSubmit(userData: any) {
     try {
       let success;
+     console.log('Submitting user data in dialog:', userData);
       if (user?.id) {
         // تحديث مستخدم موجود
         success = await updateUser(user.id, userData)
