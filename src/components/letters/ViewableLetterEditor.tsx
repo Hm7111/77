@@ -86,7 +86,7 @@ export function ViewableLetterEditor() {
     if (!id) return;
     
     setIsLoading(true);
-    setError(null);
+    setLoadError(null);
     
     try {
       console.log('Loading letter with ID:', id);
