@@ -72,7 +72,7 @@ export default function ContentStep({
       />
 
       <div className={`flex ${editorState.previewMode ? 'flex-col' : 'lg:flex-row'} gap-6`}>
-        {/* المحرر - يظهر فقط إذا كان النمط "خارجي" أو ليس في وضع المعاينة */}
+        {/* المحرر - يظهر فقط إذا كان الأسلوب "خارجي" أو ليس في وضع المعاينة */}
         <div className={`relative ${editorState.previewMode ? 'hidden' : editorState.editorStyle === 'inside' ? 'hidden' : 'flex-1'}`}>
           <div className="sticky top-4">
             <h3 className="text-lg font-semibold mb-4">محرر النصوص</h3>

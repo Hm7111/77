@@ -76,6 +76,7 @@ export function LetterEditor() {
   useEffect(() => {
     loadTemplates();
     
+    // حفظ المسودة تلقائياً كل دقيقة
     let autosaveInterval: ReturnType<typeof setInterval>;
     
     if (autosaveEnabled) {
@@ -83,7 +84,7 @@ export function LetterEditor() {
         if (templateId && content.body && dbUser?.id) {
           handleAutosave();
         }
-      }, 60000); // Save every minute
+      }, 60000);
     }
     
     return () => {
@@ -91,15 +92,14 @@ export function LetterEditor() {
     };
   }, [templateId, content, dbUser?.id, autosaveEnabled]);
 
-  // Load letter number when template is selected
   useEffect(() => {
     if (templateId) {
       loadNextNumber();
+      // Load selected template details
       loadSelectedTemplate();
     }
   }, [templateId]);
 
-  // Load templates from database
   async function loadTemplates() {
     setLoadingTemplates(true);
     setTemplateLoadError(false);
@@ -112,12 +112,13 @@ export function LetterEditor() {
         .order('name');
 
       if (error) throw error;
-      setTemplates(data || []);
+      setTemplates(data);
       setTemplateLoadError(false);
     } catch (error) {
       console.error('Error loading templates:', error);
       setTemplateLoadError(true);
       
+      // Provide more specific error message based on error type
       let errorMessage = 'حدث خطأ أثناء تحميل القوالب';
       
       if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -136,7 +137,6 @@ export function LetterEditor() {
     }
   }
 
-  // Load selected template details
   async function loadSelectedTemplate() {
     if (!templateId) return;
     
@@ -159,7 +159,6 @@ export function LetterEditor() {
     }
   }
 
-  // Load next letter number
   async function loadNextNumber() {
     try {
       const { data, error } = await supabase
@@ -184,7 +183,6 @@ export function LetterEditor() {
     }
   }
 
-  // Autosave draft
   async function handleAutosave() {
     if (!dbUser?.id || !templateId || !content.body) return;
     
@@ -206,7 +204,6 @@ export function LetterEditor() {
     }
   }
 
-  // Submit letter
   async function handleSubmit(e?: React.FormEvent) {
     if (e) e.preventDefault();
     setIsLoading(true);
@@ -253,6 +250,7 @@ export function LetterEditor() {
 
       await createLetter(draft);
       
+      // إظهار رسالة النجاح
       toast({
         title: 'تم الحفظ',
         description: 'تم حفظ الخطاب بنجاح',
@@ -274,44 +272,6 @@ export function LetterEditor() {
     }
   }
 
-  // Save as draft
-  async function saveAsDraft() {
-    if (!dbUser?.id || !templateId) return;
-    
-    setIsLoading(true);
-    try {
-      await saveDraft({
-        user_id: dbUser.id,
-        template_id: templateId,
-        content,
-        status: 'draft',
-        number: nextNumber,
-        year: currentYear,
-        creator_name: dbUser?.full_name || user?.email,
-        sync_status: 'pending'
-      });
-      
-      toast({
-        title: 'تم الحفظ',
-        description: 'تم حفظ المسودة بنجاح',
-        type: 'success'
-      });
-      
-      setTimeout(() => navigate('/admin/letters'), 1000);
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء حفظ المسودة',
-        type: 'error'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  // Date picker handling
   function handleDateClick() {
     setShowDatePicker(true);
   }
@@ -324,9 +284,11 @@ export function LetterEditor() {
       .format('iDD/iMM/iYYYY');
     setContent(prev => ({ ...prev, date }));
     setShowDatePicker(false);
+    
+    // إغلاق التقويم عند النقر خارجه
+    document.addEventListener('click', () => setShowDatePicker(false), { once: true });
   }
 
-  // Print letter
   async function handlePrint() {
     if (!templateId || !content.body) return;
     
@@ -370,7 +332,6 @@ export function LetterEditor() {
     }
   }
 
-  // Export to PDF
   async function handleExportPDF() {
     if (!templateId || !content.body) return;
     
@@ -423,60 +384,127 @@ export function LetterEditor() {
     }
   }
 
-  // Handle template selection
-  function handleSelectTemplate(id: string) {
-    setTemplateId(id);
-    setActiveStep(3); // Move to content step
+  // نسخ رابط رمز QR
+  function copyVerificationUrl() {
+    if (!content.verification_url) return;
+    
+    const url = `${window.location.origin}/verify/${content.verification_url}`;
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        toast({
+          title: 'تم النسخ',
+          description: 'تم نسخ رابط التحقق بنجاح',
+          type: 'success'
+        });
+      })
+      .catch(() => {
+        toast({
+          title: 'خطأ',
+          description: 'حدث خطأ أثناء نسخ الرابط',
+          type: 'error'
+        });
+      });
   }
 
-  // Handle content changes
-  function handleContentChange(newContent: Partial<Record<string, string>>) {
-    setContent(prev => ({ ...prev, ...newContent }));
+  function toggleEditorStyle() {
+    setEditorState(prev => prev === 'inside' ? 'outside' : 'inside');
   }
 
-  // Handle editor config changes
-  function handleFontSizeChange(size: string) {
-    setEditorConfig(prev => ({ ...prev, fontSize: size }));
-  }
-
-  function handleLineHeightChange(height: number) {
-    setEditorConfig(prev => ({ ...prev, lineHeight: height }));
-  }
-
-  // Toggle editor configuration
-  function toggleShowTemplateSelector() {
+  // وظيفة لتغيير حجم المعاينة
+  function togglePreviewScale() {
     setEditorState(prev => ({
       ...prev,
-      showTemplateSelector: !prev.showTemplateSelector
+      previewScale: prev.previewScale === 'fit' ? 'actual' : 'fit'
+    }));
+  }
+  
+  // وظيفة لتكبير منطقة المعاينة
+  const zoomPreview = () => {
+    if (letterPreviewRef.current) {
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4';
+      
+      const content = document.createElement('div');
+      content.className = 'bg-white rounded-lg max-h-[90vh] overflow-auto relative';
+      
+      // زر الإغلاق
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'absolute top-2 right-2 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 z-10';
+      closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+      closeBtn.onclick = () => document.body.removeChild(modal);
+      
+      // نسخة من المعاينة
+      const preview = letterPreviewRef.current.cloneNode(true) as HTMLDivElement;
+      preview.style.transform = 'scale(1)';
+      preview.style.transformOrigin = 'top center';
+      preview.style.overflow = 'hidden';
+      
+      content.appendChild(closeBtn);
+      content.appendChild(preview);
+      modal.appendChild(content);
+      
+      // أزرار التصدير والطباعة
+      const actions = document.createElement('div');
+      actions.className = 'flex items-center justify-center gap-4 p-4 bg-white border-t sticky bottom-0';
+      
+      const printBtn = document.createElement('button');
+      printBtn.className = 'flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-800';
+      printBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>طباعة';
+      printBtn.onclick = handlePrint;
+      
+      const exportBtn = document.createElement('button');
+      exportBtn.className = 'flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90';
+      exportBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>تصدير PDF';
+      exportBtn.onclick = handleExportPDF;
+      
+      actions.appendChild(printBtn);
+      actions.appendChild(exportBtn);
+      content.appendChild(actions);
+      
+      document.body.appendChild(modal);
+    }
+  };
+
+  // وظيفة للتعامل مع النماذج النصية
+  function handleInsertTemplate(templateContent: string) {
+    // إذا لم يكن هناك محتوى سابق، نضع النموذج مباشرة
+    if (!content.body) {
+      setContent(prev => ({ ...prev, body: templateContent }));
+    } else {
+      // إذا كان هناك محتوى، نضيف النموذج إليه
+      setContent(prev => ({ ...prev, body: prev.body + '\n\n' + templateContent }));
+    }
+  }
+
+  // دالة للتبديل بين إظهار/إخفاء رمز QR في المحرر
+  function toggleQRVisibility() {
+    setEditorState(prev => ({
+      ...prev,
+      showQRInEditor: !prev.showQRInEditor
     }));
   }
 
-  // Define steps
-  const steps = [
-    { title: 'البيانات الأساسية', description: 'إدخال الموضوع والجهة' },
-    { title: 'اختيار القالب', description: 'اختيار قالب الخطاب المناسب' },
-    { title: 'محتوى الخطاب', description: 'كتابة محتوى الخطاب وتنسيقه' },
-    { title: 'المعاينة والحفظ', description: 'معاينة الخطاب قبل الحفظ' }
-  ];
+  // معالجة تغيير ارتفاع السطر
+  const handleLineHeightChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = parseFloat(e.target.value);
+    setEditorConfig({...editorConfig, lineHeight: value});
+  };
+
+  const today = moment();
+  const currentHijriYear = today.iYear();
+  const currentHijriMonth = today.iMonth();
+  const currentHijriDay = today.iDate();
+  const daysInMonth = today.iDaysInMonth();
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Text template selector */}
       {editorState.showTemplateSelector && (
         <TextTemplateSelector
-          onSelectTemplate={(templateContent) => {
-            if (!content.body) {
-              setContent(prev => ({ ...prev, body: templateContent }));
-            } else {
-              setContent(prev => ({ ...prev, body: prev.body + '\n\n' + templateContent }));
-            }
-            setEditorState(prev => ({ ...prev, showTemplateSelector: false }));
-          }}
+          onSelectTemplate={handleInsertTemplate}
           onClose={() => setEditorState(prev => ({ ...prev, showTemplateSelector: false }))}
         />
       )}
     
-      {/* Success message overlay */}
       {isSaved && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full flex flex-col items-center animate-fade-in">
@@ -571,21 +599,25 @@ export function LetterEditor() {
         </div>
       </div>
 
-      {/* Multi-step form */}
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        {/* Stepper component */}
+      <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+        {/* خطوات إنشاء الخطاب */}
         <Stepper 
           activeStep={activeStep} 
           setActiveStep={setActiveStep}
-          steps={steps}
+          steps={[
+            { title: 'البيانات الأساسية', description: 'إدخال الموضوع والجهة' },
+            { title: 'اختيار القالب', description: 'اختيار قالب الخطاب المناسب' },
+            { title: 'محتوى الخطاب', description: 'كتابة محتوى الخطاب وتنسيقه' },
+            { title: 'المعاينة والحفظ', description: 'معاينة الخطاب قبل الحفظ' }
+          ]}
           content={content}
         />
 
-        {/* Step content */}
+        {/* محتوى الخطوة */}
         {activeStep === 1 && (
           <BasicInfoStep
             content={content}
-            onContentChange={handleContentChange}
+            onContentChange={setContent}
             onNextStep={() => setActiveStep(2)}
             autosaveEnabled={autosaveEnabled}
             onToggleAutosave={() => setAutosaveEnabled(!autosaveEnabled)}
@@ -602,7 +634,10 @@ export function LetterEditor() {
             <TemplateStep
               templates={templates}
               selectedTemplateId={templateId}
-              onSelectTemplate={handleSelectTemplate}
+              onSelectTemplate={(id) => {
+                setTemplateId(id);
+                setActiveStep(3);
+              }}
               isLoading={loadingTemplates}
               onPreviousStep={() => setActiveStep(1)}
             />
@@ -612,7 +647,7 @@ export function LetterEditor() {
         {activeStep === 3 && selectedTemplate && (
           <ContentStep
             content={content}
-            onContentChange={handleContentChange}
+            onContentChange={setContent}
             selectedTemplate={selectedTemplate}
             editorConfig={editorConfig}
             editorState={{
@@ -622,8 +657,8 @@ export function LetterEditor() {
               showEditorControls,
               autosaveEnabled
             }}
-            onLineHeightChange={handleLineHeightChange}
-            onFontSizeChange={handleFontSizeChange}
+            onLineHeightChange={(height) => setEditorConfig(prev => ({ ...prev, lineHeight: height }))}
+            onFontSizeChange={(size) => setEditorConfig(prev => ({ ...prev, fontSize: size }))}
             letterPreviewRef={letterPreviewRef}
             nextNumber={nextNumber}
             currentYear={currentYear}
@@ -634,7 +669,7 @@ export function LetterEditor() {
             onNextStep={() => setActiveStep(4)}
             onPrevStep={() => setActiveStep(2)}
             onManualSave={handleAutosave}
-            onShowTemplateSelector={toggleShowTemplateSelector}
+            onShowTemplateSelector={() => setEditorState(prev => ({ ...prev, showTemplateSelector: true }))}
           />
         )}
 

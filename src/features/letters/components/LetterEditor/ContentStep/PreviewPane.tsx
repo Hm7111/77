@@ -95,9 +95,7 @@ export default function PreviewPane({
       `}>
         <div
           ref={letterPreviewRef}
-          className={`w-[595px] h-[842px] bg-white ${
-            editorState.previewScale === 'fit' && editorState.previewMode ? 'scale-[0.7] sm:scale-[0.85] md:scale-[1]' : ''
-          } mx-auto transition-transform origin-top`}
+          className={`w-[595px] h-[842px] bg-white ${editorState.previewScale === 'fit' && editorState.previewMode ? 'scale-[0.7] sm:scale-[0.85] md:scale-[1]' : ''} mx-auto transition-transform origin-top`}
           style={{
             backgroundImage: selectedTemplate ? `url(${selectedTemplate.image_url})` : 'none',
             backgroundSize: '100% 100%',
