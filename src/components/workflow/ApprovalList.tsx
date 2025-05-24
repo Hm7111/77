@@ -2,7 +2,23 @@ import { useState, useEffect, useMemo } from 'react';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { useToast } from '../../hooks/useToast';
 import { useQueryClient } from '@tanstack/react-query';
-import { ClipboardCheck, Clock, Search, Calendar, FileText, FileCheck, AlertCircle, RefreshCw, User, Filter, SortAsc, SortDesc, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { 
+  ClipboardCheck, 
+  CheckSquare, 
+  FileCheck, 
+  Clock, 
+  Search, 
+  Calendar, 
+  User, 
+  Filter, 
+  AlertCircle, 
+  RefreshCw,
+  Eye,
+  ClipboardList,
+  ChevronDown,
+  BookOpen,
+  FileText
+} from 'lucide-react';
 import { ApprovalRequestModal } from './ApprovalRequestModal';
 import { ApprovalDecisionModal } from './ApprovalDecisionModal';
 import { ViewLetterModal } from '../letters/ViewLetterModal';
@@ -375,9 +391,9 @@ export function ApprovalList({ role }: ApprovalListProps) {
       ) : filteredApprovals.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 p-8 text-center">
           {role === 'approver' ? (
-            <ClipboardCheck className="h-16 w-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
+            <ClipboardCheck className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
           ) : (
-            <FileCheck className="h-16 w-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
+            <FileCheck className="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
           )}
           <h3 className="text-xl font-bold mb-2">
             {searchTerm ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات موافقة'}
@@ -392,10 +408,10 @@ export function ApprovalList({ role }: ApprovalListProps) {
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto relative">
-            <div className="min-w-full">
-              <div className="bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-800 grid grid-cols-5 py-3">
-                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 cursor-pointer"
+          <div className="overflow-x-auto">
+            <div className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+              <div className="bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-800 grid grid-cols-5 py-4">
+                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 cursor-pointer select-none"
                   onClick={() => {
                     if (sortField === 'subject') {
                       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -405,15 +421,15 @@ export function ApprovalList({ role }: ApprovalListProps) {
                     }
                   }}
                 >
-                  <span>الخطاب</span>
+                  <span className="font-bold">الخطاب</span>
                   {sortField === 'subject' && (
                     sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />
                   )}
                 </div>
-                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {role === 'approver' ? 'المرسل' : 'المعتمد'}
+                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 select-none">
+                  <span className="font-bold">{role === 'approver' ? 'المرسل' : 'المعتمد'}</span>
                 </div>
-                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 cursor-pointer"
+                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 cursor-pointer select-none"
                   onClick={() => {
                     if (sortField === 'created_at') {
                       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -423,16 +439,20 @@ export function ApprovalList({ role }: ApprovalListProps) {
                     }
                   }}
                 >
-                  <span>تاريخ الطلب</span>
+                  <span className="font-bold">تاريخ الطلب</span>
                   {sortField === 'created_at' && (
                     sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />
                   )}
                 </div>
-                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400">الحالة</div>
-                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400">الإجراءات</div>
+                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 select-none">
+                  <span className="font-bold">الحالة</span>
+                </div>
+                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 select-none">
+                  <span className="font-bold">الإجراءات</span>
+                </div>
               </div>
               
-              <div className="divide-y divide-gray-200 dark:divide-gray-800">
+              <div className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
                 {filteredApprovals.map((approval) => {
                   // تحديد البيانات بناءً على نوع القائمة
                   const letterSubject = role === 'approver' 
@@ -468,39 +488,39 @@ export function ApprovalList({ role }: ApprovalListProps) {
                   };
                   
                   return (
-                    <div key={approval.id} className="grid grid-cols-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
-                      <div className="px-4">
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 mt-1">
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <FileText className="h-5 w-5 text-primary" />
+                    <div key={approval.id} className="grid grid-cols-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors border-b dark:border-gray-800 last:border-b-0">
+                      <div className="px-4 flex items-center">
+                        <div className="flex items-start gap-3 w-full">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shadow-sm">
+                              <FileText className="h-5 w-5 text-primary dark:text-primary-foreground" />
                             </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-gray-900 dark:text-white truncate">{letterSubject || 'غير معروف'}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-gray-900 dark:text-white truncate mb-1">{letterSubject || 'غير معروف'}</p>
                             {letterNumber && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
-                                <span className="font-mono">{letterNumber}</span>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <span className="font-mono bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">{letterNumber}</span>
                               </p>
                             )}
                           </div>
                         </div>
                       </div>
                       
-                      <div className="px-4 flex items-center">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                      <div className="px-4 flex items-center justify-start">
+                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 shadow-sm">
                             <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                           </div>
-                          <span className="font-medium text-gray-900 dark:text-white truncate">{personName || 'غير معروف'}</span>
+                          <span className="font-medium text-gray-900 dark:text-white truncate max-w-[120px]">{personName || 'غير معروف'}</span>
                         </div>
                       </div>
                       
-                      <div className="px-4 flex items-center">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span>{moment(requestDate).format('iYYYY/iM/iD')}</span>
+                      <div className="px-4 flex items-center justify-start">
+                        <div className="flex flex-col bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
+                          <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 mb-0.5">
+                            <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            <span className="font-medium">{moment(requestDate).format('iYYYY/iM/iD')}</span>
                           </div>
                           <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                             {new Date(requestDate).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
@@ -508,33 +528,33 @@ export function ApprovalList({ role }: ApprovalListProps) {
                         </div>
                       </div>
                       
-                      <div className="px-4 flex items-center">
-                        <div className="flex items-center gap-1.5">
+                      <div className="px-4 flex items-center justify-start">
+                        <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
                           {getStatusIcon(approval.status)}
                           <WorkflowStatus status={approval.status} />
                         </div>
                       </div>
                       
-                      <div className="px-4 flex items-center justify-center">
-                        <div className="flex items-center gap-2">
+                      <div className="px-4 flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleViewLetter(letterId, requestId)}
+                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg flex items-center gap-1.5 transition-colors"
+                          title="عرض الخطاب"
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="text-xs font-medium hidden sm:inline">عرض</span>
+                        </button>
+                        
+                        {role === 'approver' && approval.status === 'submitted' && (
                           <button
-                            onClick={() => handleViewLetter(letterId, requestId)}
-                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full"
-                            title="عرض الخطاب"
+                            onClick={() => openDecisionModal(approval)}
+                            className="p-2 text-primary hover:text-primary/80 hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg flex items-center gap-1.5 transition-colors"
+                            title="اتخاذ قرار"
                           >
-                            <Eye className="h-5 w-5" />
+                            <ClipboardCheck className="h-4 w-4" />
+                            <span className="text-xs font-medium hidden sm:inline">اتخاذ قرار</span>
                           </button>
-                          
-                          {role === 'approver' && approval.status === 'submitted' && (
-                            <button
-                              onClick={() => openDecisionModal(approval)}
-                              className="p-2 text-primary hover:text-primary/80 hover:bg-primary/5 dark:hover:bg-primary/10 rounded-full"
-                              title="اتخاذ قرار"
-                            >
-                              <ClipboardCheck className="h-5 w-5" />
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
                   );
