@@ -14,10 +14,9 @@ export function useApprovalDecisions() {
   /**
    * الموافقة على طلب
    */
-  const approveRequest = useCallback(async (requestId: string, comments?: string, signatureId?: string) => {
-    console.log('approveRequest called with:', { requestId, comments, signatureId });
-    
-    if (!requestId) {
+  const approveRequest = useCallback(async (data: ApprovalDecisionData) => {
+    if (!data.requestId) {
+      console.error('Invalid request ID:', data.requestId);
       toast({
         title: 'خطأ',
         description: 'معرف طلب الموافقة غير صالح',
@@ -31,9 +30,9 @@ export function useApprovalDecisions() {
     
     try {
       // التأكد من وجود توقيع
-      if (!signatureId) {
+      if (!data.signatureId) {
         const { data: user } = await supabase.auth.getUser();
-        const userId = user.user?.id;
+        const userId = user?.user?.id;
         
         if (userId) {
           const { data: signatures } = await supabase
