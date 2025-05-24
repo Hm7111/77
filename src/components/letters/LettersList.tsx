@@ -413,54 +413,56 @@ export function LettersList({}: LetterListProps) {
                   </div>
                 </div>
 
-                <div className="px-4 py-4 flex items-center justify-center gap-1">
-                  <button 
-                    onClick={() => navigate(`view/${letter.id}`)}
-                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                    title="عرض الخطاب"
-                  >
-                    <Eye className="h-4.5 w-4.5" />
-                  </button>
-                  
-                  <button 
-                    onClick={() => navigate(`edit/${letter.id}`)}
-                    className="p-2 text-gray-500 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors"
-                    title="تعديل الخطاب"
-                  >
-                    <Edit className="h-4.5 w-4.5" />
-                  </button>
-                  
-                  <button 
-                    onClick={() => handlePrint(letter)}
-                    className="p-2 text-gray-500 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors"
-                    title="طباعة الخطاب"
-                  >
-                    <Printer className="h-4.5 w-4.5" />
-                  </button>
-                  
-                  <button 
-                    onClick={() => handleExport(letter)}
-                    className="p-2 text-gray-500 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors"
-                    title="تصدير PDF"
-                  >
-                    <Download className="h-4.5 w-4.5" />
-                  </button>
-                  
-                  <button
-                    onClick={() => handlePreviewHighQuality(letter)}
-                    className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                    title="تصدير PDF بجودة عالية"
-                  >
-                    <FileText className="h-4.5 w-4.5" />
-                  </button>
-                  
-                  <button 
-                    onClick={() => setShowDeleteConfirm(letter.id)}
-                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                    title="حذف الخطاب"
-                  >
-                    <Trash className="h-4.5 w-4.5" />
-                  </button>
+                <div className="px-4 py-4 flex items-center justify-center">
+                  <div className="flex flex-wrap justify-center gap-0.5">
+                    <button 
+                      onClick={() => navigate(`view/${letter.id}`)}
+                      className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                      title="عرض الخطاب"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    
+                    <button 
+                      onClick={() => navigate(`edit/${letter.id}`)}
+                      className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors"
+                      title="تعديل الخطاب"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    
+                    <button 
+                      onClick={() => handlePrint(letter)}
+                      className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors"
+                      title="طباعة الخطاب"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleExport(letter)}
+                      className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors"
+                      title="تصدير PDF"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                    
+                    <button
+                      onClick={() => handlePreviewHighQuality(letter)}
+                      className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                      title="تصدير PDF بجودة عالية"
+                    >
+                      <FileText className="h-4 w-4" />
+                    </button>
+                    
+                    <button 
+                      onClick={() => setShowDeleteConfirm(letter.id)}
+                      className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      title="حذف الخطاب"
+                    >
+                      <Trash className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
