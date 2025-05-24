@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   X, Plus, Move, Save, Trash, Sliders, AlignLeft, AlignCenter, 
   AlignRight, GripHorizontal, DivideSquare, Layers, 
-  Pencil, TextSelect, QrCode, Info
+  Pencil, TextSelect, QrCode, Info, FileText, Calendar
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/useToast';
