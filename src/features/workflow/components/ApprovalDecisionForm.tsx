@@ -5,7 +5,6 @@ import { ApprovalRequest, Signature } from '../../../types/database';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../lib/auth';
 import { useToast } from '../../../hooks/useToast';
-import { useDiagnostics } from '../../../hooks/useDiagnostics';
 
 interface ApprovalDecisionFormProps {
   request: ApprovalRequest;
@@ -20,7 +19,6 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
   const { approveRequest, rejectRequest, isLoading } = useApprovalDecisions();
   const { dbUser } = useAuth();
   const { toast } = useToast();
-  const { diagnoseError } = useDiagnostics();
   
   const [tab, setTab] = useState<'approve' | 'reject'>('approve');
   const [comments, setComments] = useState('');
@@ -62,18 +60,8 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
   
   // معالجة الموافقة
   async function handleApprove() {
-    // التحقق من حالة الطلب قبل المتابعة
-    if (request.status === 'approved') {
-      toast({
-        title: 'تنبيه',
-        description: 'تم الموافقة على هذا الطلب مسبقاً',
-        type: 'warning',
-      });
-      return;
-    }
-
     if (!selectedSignatureId) {
-      console.error('No signature selected');
+      console.log('No signature selected');
       toast({
         title: 'خطأ',
         description: 'يرجى اختيار توقيع أو رفع توقيع جديد',
@@ -86,8 +74,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
     const requestId = request.id || (request as any).request_id;
     
     if (!requestId) {
-      const error = new Error('معرف طلب الموافقة غير صالح');
-      diagnoseError(error);
+      console.error('Invalid request ID:', request);
       toast({
         title: 'خطأ',
         description: 'معرف طلب الموافقة غير صالح',
@@ -96,26 +83,22 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    try {
-      const success = await approveRequest({
-        requestId: requestId,
-        comments,
-        signatureId: selectedSignatureId
-      });
-      
-      if (success) {
-        onClose();
-        if (onSuccess) onSuccess();
-      }
-    } catch (error) {
-      diagnoseError(error);
+    const success = await approveRequest({
+      requestId: requestId,
+      comments,
+      signatureId: selectedSignatureId
+    });
+    
+    if (success) {
+      onClose();
+      if (onSuccess) onSuccess();
     }
   }
   
   // معالجة الرفض
   async function handleReject() {
     if (!rejectionReason.trim()) {
-      console.error('No rejection reason provided');
+      console.log('No rejection reason provided');
       toast({
         title: 'خطأ',
         description: 'يرجى إدخال سبب الرفض',
@@ -128,8 +111,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
     const requestId = request.id || (request as any).request_id;
     
     if (!requestId) {
-      const error = new Error('معرف طلب الموافقة غير صالح');
-      diagnoseError(error);
+      console.error('Invalid request ID:', request);
       toast({
         title: 'خطأ',
         description: 'معرف طلب الموافقة غير صالح',
@@ -138,23 +120,16 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    try {
-      const success = await rejectRequest({
-        requestId: requestId,
-        reason: rejectionReason
-      });
-      
-      if (success) {
-        onClose();
-        if (onSuccess) onSuccess();
-      }
-    } catch (error) {
-      diagnoseError(error);
+    const success = await rejectRequest({
+      requestId: requestId,
+      reason: rejectionReason
+    });
+    
+    if (success) {
+      onClose();
+      if (onSuccess) onSuccess();
     }
   }
-
-  // التحقق من حالة الطلب لتعطيل زر الموافقة إذا كان الطلب موافق عليه مسبقاً
-  const isApproved = request.status === 'approved';
   
   return (
     <div className="space-y-4">
@@ -167,9 +142,8 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
               tab === 'approve'
                 ? 'bg-primary text-white'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-            } ${isApproved ? 'opacity-50 cursor-not-allowed' : ''}`}
-            onClick={() => !isApproved && setTab('approve')}
-            disabled={isApproved}
+            }`}
+            onClick={() => setTab('approve')}
           >
             <CheckCircle className="h-4 w-4 inline-block ml-1" />
             موافقة
@@ -189,16 +163,6 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
         </div>
       </div>
 
-      {/* تنبيه إذا كان الطلب موافق عليه مسبقاً */}
-      {isApproved && tab === 'approve' && (
-        <div className="p-4">
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/30 rounded-lg p-3 text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 flex-shrink-0" />
-            <p>تم الموافقة على هذا الطلب مسبقاً</p>
-          </div>
-        </div>
-      )}
-
       {/* نموذج الموافقة */}
       {tab === 'approve' && (
         <div className="p-4 space-y-4">
@@ -211,10 +175,8 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
                 {signatures.map((sig) => (
                   <div
                     key={sig.id}
-                    onClick={() => !isApproved && setSelectedSignatureId(sig.id)}
-                    className={`border p-3 rounded-lg ${
-                      isApproved ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
-                    } ${
+                    onClick={() => setSelectedSignatureId(sig.id)}
+                    className={`border p-3 rounded-lg cursor-pointer ${
                       selectedSignatureId === sig.id
                         ? 'border-primary bg-primary/5 dark:bg-primary/10'
                         : 'hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -267,7 +229,6 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
               onChange={(e) => setComments(e.target.value)}
               className="w-full p-3 border dark:border-gray-700 rounded-lg h-24 resize-none"
               placeholder="أضف أي ملاحظات أو تعليقات على الموافقة..."
-              disabled={isApproved}
             />
           </div>
           
@@ -275,7 +236,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
             <button
               type="button"
               onClick={handleApprove}
-              disabled={isLoading || (!selectedSignatureId && signatures.length > 0) || isApproved}
+              disabled={isLoading || (!selectedSignatureId && signatures.length > 0)}
               className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isLoading ? (

@@ -1,7 +1,6 @@
 import { useState, useCallback, ReactNode, useEffect } from 'react'
 import { Toast, ToastContainer } from '../components/ui/Toast'
 import { createRoot } from 'react-dom/client'
-import { toast as libToast } from '../lib/toast'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -72,11 +71,56 @@ function ToastProvider() {
 
 // واجهة عامة للاستخدام
 let toastRoot: ReturnType<typeof createRoot> | null = null
+let addToastFn: ((options: ToastOptions) => string) | null = null
 
 function createToastProvider() {
   const container = getOrCreateToastContainer()
   toastRoot = createRoot(container)
-  toastRoot.render(<ToastProvider />)
+  
+  const ToastProviderWithCallbacks = () => {
+    const [toasts, setToasts] = useState<ToastItem[]>([])
+  
+    const removeToast = useCallback((id: string) => {
+      setToasts(prev => prev.filter(toast => toast.id !== id))
+    }, [])
+  
+    const addToast = useCallback((options: ToastOptions) => {
+      const id = `toast-${++toastCounter}`
+      setToasts(prev => [...prev, { id, ...options }])
+      
+      // إزالة التنبيه تلقائياً بعد المدة المحددة
+      if (options.duration !== Infinity) {
+        setTimeout(() => {
+          removeToast(id)
+        }, (options.duration || 5000) + 300) // إضافة وقت للانتقال
+      }
+      
+      return id
+    }, [removeToast])
+  
+    // تخزين دالة إضافة التنبيه
+    useEffect(() => {
+      addToastFn = addToast
+    }, [addToast])
+  
+    return (
+      <ToastContainer>
+        {toasts.map(toast => (
+          <Toast
+            key={toast.id}
+            id={toast.id}
+            title={toast.title}
+            description={toast.description}
+            type={toast.type || 'info'}
+            duration={toast.duration || 5000}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
+      </ToastContainer>
+    )
+  }
+  
+  toastRoot.render(<ToastProviderWithCallbacks />)
 }
 
 // تأكد من تهيئة مزود التنبيهات عند استدعاء الدالة
@@ -87,45 +131,16 @@ function ensureToastProvider() {
 }
 
 export function useToast() {
-  const [toasts, setToasts] = useState<ToastItem[]>([])
-
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id))
+  ensureToastProvider()
+  
+  const toast = useCallback((options: ToastOptions) => {
+    if (!addToastFn) {
+      console.error('Toast provider not initialized')
+      return ''
+    }
+    
+    return addToastFn(options)
   }, [])
 
-  const addToast = useCallback(
-    ({
-      title,
-      description,
-      type = 'info',
-      duration = 5000,
-    }: {
-      title: string
-      description?: string
-      type?: ToastType
-      duration?: number
-    }) => {
-      const id = `toast-${++toastCounter}`
-      setToasts(prev => [...prev, { id, title, description, type, duration }])
-      
-      if (duration !== Infinity) {
-        setTimeout(() => {
-          removeToast(id)
-        }, duration + 300)
-      }
-      
-      return id
-    },
-    [removeToast]
-  )
-
-  // تصدير دالة إضافة التنبيه للاستخدام من خارج الهوك
-  useEffect(() => {
-    window.showToast = addToast;
-    return () => {
-      window.showToast = undefined;
-    };
-  }, [addToast]);
-
-  return { toast: addToast, removeToast }
+  return { toast }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HelpCircle, Keyboard, LogOut, Moon, Sun, Settings, Bell, User, Search, Menu, X, AlertCircle } from 'lucide-react'
+import { HelpCircle, Keyboard, LogOut, Moon, Sun, Settings, Bell, User, Search, Menu, X } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useThemeStore } from '../../store/theme'
 import { supabase } from '../../lib/supabase'
@@ -8,7 +8,6 @@ import { useAuth } from '../../lib/auth'
 import { useToast } from '../../hooks/useToast'
 import { useWorkflow } from '../../hooks/useWorkflow'
 import { useQuery } from '@tanstack/react-query'
-import { DiagnosticsButton } from './DiagnosticsButton'
 
 export function Header() {
   const { theme, setTheme } = useThemeStore()
@@ -217,8 +216,6 @@ export function Header() {
           </div>
           
           <div className="flex items-center gap-x-1.5">
-            <DiagnosticsButton />
-            
             <button
               id="keyboard-shortcuts"
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 group relative text-gray-500 dark:text-gray-400"
