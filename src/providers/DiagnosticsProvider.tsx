@@ -89,7 +89,7 @@ export function DiagnosticsProvider({ children }: { children: ReactNode }) {
   /**
    * تغليف دالة غير متزامنة بمعالجة الأخطاء
    */
-  const withDiagnostics = useCallback(<T>(
+  const withDiagnostics = useCallback(<T,>(
     fn: (...args: any[]) => Promise<T>,
     options?: {
       showError?: boolean;

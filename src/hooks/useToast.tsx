@@ -72,56 +72,11 @@ function ToastProvider() {
 
 // واجهة عامة للاستخدام
 let toastRoot: ReturnType<typeof createRoot> | null = null
-let addToastFn: ((options: ToastOptions) => string) | null = null
 
 function createToastProvider() {
   const container = getOrCreateToastContainer()
   toastRoot = createRoot(container)
-  
-  const ToastProviderWithCallbacks = () => {
-    const [toasts, setToasts] = useState<ToastItem[]>([])
-  
-    const removeToast = useCallback((id: string) => {
-      setToasts(prev => prev.filter(toast => toast.id !== id))
-    }, [])
-  
-    const addToast = useCallback((options: ToastOptions) => {
-      const id = `toast-${++toastCounter}`
-      setToasts(prev => [...prev, { id, ...options }])
-      
-      // إزالة التنبيه تلقائياً بعد المدة المحددة
-      if (options.duration !== Infinity) {
-        setTimeout(() => {
-          removeToast(id)
-        }, (options.duration || 5000) + 300) // إضافة وقت للانتقال
-      }
-      
-      return id
-    }, [removeToast])
-  
-    // تخزين دالة إضافة التنبيه
-    useEffect(() => {
-      addToastFn = addToast
-    }, [addToast])
-  
-    return (
-      <ToastContainer>
-        {toasts.map(toast => (
-          <Toast
-            key={toast.id}
-            id={toast.id}
-            title={toast.title}
-            description={toast.description}
-            type={toast.type || 'info'}
-            duration={toast.duration || 5000}
-            onClose={() => removeToast(toast.id)}
-          />
-        ))}
-      </ToastContainer>
-    )
-  }
-  
-  toastRoot.render(<ToastProviderWithCallbacks />)
+  toastRoot.render(<ToastProvider />)
 }
 
 // تأكد من تهيئة مزود التنبيهات عند استدعاء الدالة
@@ -132,8 +87,12 @@ function ensureToastProvider() {
 }
 
 export function useToast() {
-  ensureToastProvider()
-  
+  const [toasts, setToasts] = useState<ToastItem[]>([])
+
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id))
+  }, [])
+
   const addToast = useCallback(
     ({
       title,
@@ -146,9 +105,6 @@ export function useToast() {
       type?: ToastType
       duration?: number
     }) => {
-      // تخزين دالة إضافة التنبيه في النافذة للاستخدام من خارج الهوك
-      window.showToast = addToast;
-      
       const id = `toast-${++toastCounter}`
       setToasts(prev => [...prev, { id, title, description, type, duration }])
       
@@ -171,5 +127,5 @@ export function useToast() {
     };
   }, [addToast]);
 
-  return { toast: addToast }
+  return { toast: addToast, removeToast }
 }
