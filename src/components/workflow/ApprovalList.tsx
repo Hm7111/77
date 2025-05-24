@@ -540,6 +540,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
                   );
                 })}
               </div>
+            </div>
           </div>
         </div>
       )}
