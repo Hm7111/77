@@ -15,8 +15,6 @@
     "@fontsource/cairo": "^5.0.8",
     "@pdf-lib/fontkit": "^1.1.1",
     "@radix-ui/react-tabs": "^1.0.4",
-    "@supabase/auth-helpers-react": "^0.4.2",
-    "@supabase/auth-helpers-shared": "^0.3.7",
     "@supabase/supabase-js": "^2.39.8",
     "@tanstack/react-query": "^5.28.5",
     "@tinymce/tinymce-react": "^4.3.2",
