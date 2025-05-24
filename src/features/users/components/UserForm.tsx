@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, Branch, UserRole } from '../types';
+import { useFormValidation } from '../../../hooks/useFormValidation';
 import { BranchSelector } from '../../../components/branches/BranchSelector';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -16,93 +17,79 @@ interface UserFormProps {
  */
 export function UserForm({ user, onSubmit, isLoading, branches, roles }: UserFormProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState('user');
-  const [branchId, setBranchId] = useState<string | null>(null);
-  const [password, setPassword] = useState('');
-  const [isActive, setIsActive] = useState(true);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // إعداد التحقق من صحة النموذج
+  const {
+    values,
+    errors,
+    handleChange,
+    handleBlur,
+    handleSubmit: validateAndSubmit,
+    setValue,
+    resetForm
+  } = useFormValidation(
+    {
+      email: user?.email || '',
+      full_name: user?.full_name || '',
+      role: user?.role || 'user',
+      branch_id: user?.branch_id || null,
+      password: '',
+      is_active: user?.is_active !== false
+    },
+    {
+      email: {
+        required: 'البريد الإلكتروني مطلوب',
+        pattern: [/\S+@\S+\.\S+/, 'البريد الإلكتروني غير صالح']
+      },
+      full_name: {
+        required: 'الاسم الكامل مطلوب'
+      },
+      role: {
+        required: 'الدور مطلوب'
+      },
+      branch_id: {
+        required: 'الفرع مطلوب'
+      },
+      password: {
+        required: user ? false : 'كلمة المرور مطلوبة',
+        minLength: [6, 'كلمة المرور يجب ألا تقل عن 6 أحرف']
+      }
+    }
+  );
   
   // إعادة تعيين النموذج عند تغيير المستخدم
   useEffect(() => {
     if (user) {
-      setEmail(user.email);
-      setFullName(user.full_name);
-      setRole(user.role);
-      setBranchId(user.branch_id);
-      setPassword('');
-      setIsActive(user.is_active !== false);
+      resetForm({
+        email: user.email,
+        full_name: user.full_name,
+        role: user.role,
+        branch_id: user.branch_id,
+        password: '',
+        is_active: user.is_active !== false
+      });
     } else {
-      setEmail('');
-      setFullName('');
-      setRole('user');
-      setBranchId(null);
-      setPassword('');
-      setIsActive(true);
+      resetForm({
+        email: '',
+        full_name: '',
+        role: 'user',
+        branch_id: null,
+        password: '',
+        is_active: true
+      });
     }
-  }, [user]);
-  
-  // التحقق من صحة النموذج
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!email) {
-      newErrors.email = 'البريد الإلكتروني مطلوب';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'البريد الإلكتروني غير صالح';
-    }
-    
-    if (!fullName) {
-      newErrors.full_name = 'الاسم الكامل مطلوب';
-    }
-    
-    if (!role) {
-      newErrors.role = 'الدور مطلوب';
-    }
-    
-    if (!branchId) {
-      newErrors.branch_id = 'الفرع مطلوب';
-    }
-    
-    if (!user && !password) {
-      newErrors.password = 'كلمة المرور مطلوبة';
-    } else if (password && password.length < 6) {
-      newErrors.password = 'كلمة المرور يجب ألا تقل عن 6 أحرف';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  
-  // معالجة تقديم النموذج
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
-    const userData = {
-      email,
-      full_name: fullName,
-      role,
-      branch_id: branchId,
-      password,
-      is_active: isActive
-    };
-    
-    onSubmit(userData);
-  };
+  }, [user, resetForm]);
   
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={validateAndSubmit(onSubmit)} className="space-y-4">
       <div>
         <label className="block text-sm font-medium mb-1">البريد الإلكتروني <span className="text-red-500">*</span></label>
         <input
           type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          name="email"
+          value={values.email}
+          onChange={handleChange}
+          onBlur={handleBlur}
           className={`w-full p-2 border rounded-lg ${
             errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
           }`}
@@ -115,8 +102,10 @@ export function UserForm({ user, onSubmit, isLoading, branches, roles }: UserFor
         <label className="block text-sm font-medium mb-1">الاسم الكامل <span className="text-red-500">*</span></label>
         <input
           type="text"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
+          name="full_name"
+          value={values.full_name}
+          onChange={handleChange}
+          onBlur={handleBlur}
           className={`w-full p-2 border rounded-lg ${
             errors.full_name ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
           }`}
@@ -128,8 +117,8 @@ export function UserForm({ user, onSubmit, isLoading, branches, roles }: UserFor
       <div>
         <label className="block text-sm font-medium mb-1">الفرع <span className="text-red-500">*</span></label>
         <BranchSelector 
-          value={branchId} 
-          onChange={(value) => setBranchId(value)}
+          value={values.branch_id} 
+          onChange={(value) => setValue('branch_id', value)}
           required
           error={errors.branch_id}
         />
@@ -138,8 +127,10 @@ export function UserForm({ user, onSubmit, isLoading, branches, roles }: UserFor
       <div>
         <label className="block text-sm font-medium mb-1">الدور <span className="text-red-500">*</span></label>
         <select
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
+          name="role"
+          value={values.role}
+          onChange={handleChange}
+          onBlur={handleBlur}
           className={`w-full p-2 border rounded-lg ${
             errors.role ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
           }`}
@@ -164,8 +155,10 @@ export function UserForm({ user, onSubmit, isLoading, branches, roles }: UserFor
         <div className="relative">
           <input
             type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            name="password"
+            value={values.password}
+            onChange={handleChange}
+            onBlur={handleBlur}
             className={`w-full p-2 border rounded-lg pr-10 ${
               errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
             }`}
@@ -191,8 +184,9 @@ export function UserForm({ user, onSubmit, isLoading, branches, roles }: UserFor
         <input
           type="checkbox"
           id="is-active"
-          checked={isActive}
-          onChange={(e) => setIsActive(e.target.checked)}
+          name="is_active"
+          checked={values.is_active}
+          onChange={(e) => setValue('is_active', e.target.checked)}
           className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
         />
         <label htmlFor="is-active" className="mr-2 block text-sm">

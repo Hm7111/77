@@ -85,13 +85,17 @@ export function useUsers() {
     
     try {
       // Check if user already exists
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: checkError } = await supabase
         .from('users')
         .select('id')
-        .eq('email', userData.email)
-        .single();
+        .eq('email', userData.email);
 
-      if (existingUser) {
+      if (checkError && checkError.code !== 'PGRST116') {
+        // If there's an error other than "no rows returned", throw it
+        throw checkError;
+      }
+
+      if (existingUser && existingUser.length > 0) {
         throw new Error('البريد الإلكتروني مسجل مسبقاً');
       }
 
@@ -109,7 +113,7 @@ export function useUsers() {
       });
 
       if (signUpError) {
-        if (signUpError.message === 'User already registered') {
+        if (signUpError.message === 'User already registered' || signUpError.message.includes('already registered')) {
           throw new Error('البريد الإلكتروني مسجل مسبقاً');
         }
         throw signUpError;
