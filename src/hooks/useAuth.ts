@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!user?.id) return null
       
       try {
+        // Query by id instead of email since we have a foreign key constraint with auth.users
         const { data, error } = await supabase
           .from('users')
           .select('*, branches(*)')
