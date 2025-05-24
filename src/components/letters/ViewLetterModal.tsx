@@ -1,80 +1,80 @@
-import { useState, useEffect, useRef } from 'react'
-import { X, Eye, Download, FileText, RefreshCw, AlertCircle } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
-import { useToast } from '../../hooks/useToast'
-import { Letter } from '../../types/database'
-import { exportToPDF } from '../../lib/pdf-export'
+import { useState, useEffect, useRef } from 'react';
+import { X, Eye, Download, FileText, RefreshCw, AlertCircle, Calendar, User, Building } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useToast } from '../../hooks/useToast';
+import { Letter } from '../../types/database';
+import { exportToPDF } from '../../lib/pdf-export';
 
 interface ViewLetterModalProps {
-  isOpen: boolean
-  onClose: () => void
-  letterId: string
-  requestId?: string // Optional request ID if viewing from approval context
+  isOpen: boolean;
+  onClose: () => void;
+  letterId: string;
+  requestId?: string; // Optional request ID if viewing from approval context
 }
 
 /**
  * نافذة لعرض الخطاب في واجهة الموافقة
  */
 export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLetterModalProps) {
-  const [letter, setLetter] = useState<Letter | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isExporting, setIsExporting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const { toast } = useToast()
-  const letterRef = useRef<HTMLDivElement>(null)
+  const [letter, setLetter] = useState<Letter | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const letterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && letterId) {
-      loadLetter()
+      loadLetter();
     }
-  }, [isOpen, letterId, requestId])
+  }, [isOpen, letterId, requestId]);
 
   async function loadLetter() {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      console.log('Loading letter:', letterId, 'from request:', requestId)
+      console.log('Loading letter:', letterId, 'from request:', requestId);
       
-      let letterData
+      let letterData;
 
       // If we have a request ID, use the special RPC function
       if (requestId) {
-        console.log('Loading via request ID')
+        console.log('Loading via request ID');
         
         // First get the letter ID associated with this request
         const { data: requestData, error: requestError } = await supabase.rpc(
           'get_letter_by_request_id_v2',
           { p_request_id: requestId }
-        )
+        );
         
         if (requestError) {
-          console.error('Error fetching letter by request ID:', requestError)
-          throw new Error('فشل في الحصول على معلومات الخطاب من طلب الموافقة')
+          console.error('Error fetching letter by request ID:', requestError);
+          throw new Error('فشل في الحصول على معلومات الخطاب من طلب الموافقة');
         }
         
         if (!requestData || requestData.length === 0) {
-          throw new Error('لم يتم العثور على الخطاب المرتبط بطلب الموافقة')
+          throw new Error('لم يتم العثور على الخطاب المرتبط بطلب الموافقة');
         }
         
-        console.log('Letter data from request:', requestData)
+        console.log('Letter data from request:', requestData);
         
         // Now load the full letter details
         const { data: letterDetailData, error: detailError } = await supabase.rpc(
           'get_letter_details_for_approval_v2',
           { p_letter_id: requestData[0].letter_id }
-        )
+        );
         
         if (detailError) {
-          console.error('Error fetching letter details:', detailError)
-          throw detailError
+          console.error('Error fetching letter details:', detailError);
+          throw detailError;
         }
         
         if (!letterDetailData || letterDetailData.length === 0) {
-          throw new Error('فشل في تحميل تفاصيل الخطاب')
+          throw new Error('فشل في تحميل تفاصيل الخطاب');
         }
         
-        letterData = letterDetailData[0]
+        letterData = letterDetailData[0];
         
         // Convert to full letter object structure
         const fullLetter: Letter = {
@@ -88,7 +88,8 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
           created_at: new Date().toISOString(), // Will be updated
           updated_at: new Date().toISOString(),
           verification_url: letterData.verification_url,
-          verification_url: letterData.verification_url,
+          branch_code: letterData.branch_code,
+          letter_reference: letterData.letter_reference,
           letter_templates: {
             id: letterData.template_id,
             name: letterData.template_name,
@@ -100,83 +101,83 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
             variables: [],
             zones: []
           }
-        }
+        };
         
-        setLetter(fullLetter)
+        setLetter(fullLetter);
         
       } else {
         // Standard letter loading
-        console.log('Loading letter through standard method')
+        console.log('Loading letter through standard method');
         const { data, error } = await supabase
           .from('letters')
           .select('*, letter_templates(*)')
           .eq('id', letterId)
-          .single()
+          .single();
 
         if (error) {
-          console.error('Error fetching letter:', error)
-          throw error
+          console.error('Error fetching letter:', error);
+          throw error;
         }
         
-        letterData = data
-        setLetter(data)
+        letterData = data;
+        setLetter(data);
       }
       
-      console.log('Letter loaded successfully:', letterData)
+      console.log('Letter loaded successfully:', letterData);
       
     } catch (error) {
-      console.error('Error loading letter:', error)
-      setError(error instanceof Error ? error.message : 'لم نتمكن من تحميل الخطاب')
+      console.error('Error loading letter:', error);
+      setError(error instanceof Error ? error.message : 'لم نتمكن من تحميل الخطاب');
       
       toast({
         title: 'خطأ',
         description: 'لم نتمكن من تحميل الخطاب',
         type: 'error'
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
   async function handleExport() {
-    if (!letter) return
+    if (!letter) return;
     
-    setIsExporting(true)
+    setIsExporting(true);
     try {
       await exportToPDF(letter, {
         scale: 3.0,
-        filename: `خطاب-${letter.number || 0}-${letter.year || new Date().getFullYear()}.pdf`,
-      })
+        filename: `${letter.letter_reference || `خطاب-${letter.number}-${letter.year}`}.pdf`,
+      });
       
       toast({
         title: 'تم التصدير',
         description: 'تم تصدير الخطاب بنجاح',
         type: 'success'
-      })
+      });
     } catch (error) {
-      console.error('Error exporting PDF:', error)
+      console.error('Error exporting PDF:', error);
       toast({
         title: 'خطأ',
         description: 'حدث خطأ أثناء تصدير الملف',
         type: 'error'
-      })
+      });
     } finally {
-      setIsExporting(false)
+      setIsExporting(false);
     }
   }
 
   function openInNewWindow() {
-    if (!letter) return
+    if (!letter) return;
     
     // Open in new window with the letter ID and request ID (if available)
     const url = requestId 
       ? `/admin/letters/view/${letter.id}?fromApproval=true&requestId=${requestId}`
-      : `/admin/letters/view/${letter.id}`
+      : `/admin/letters/view/${letter.id}`;
       
-    window.open(url, '_blank')
+    window.open(url, '_blank');
   }
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   // Get template data from template_snapshot if available
   const templateData = letter?.template_snapshot || letter?.letter_templates;
@@ -187,7 +188,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
         <div className="p-4 border-b dark:border-gray-800 flex items-center justify-between">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            {isLoading ? 'جاري تحميل الخطاب...' : letter ? `معاينة الخطاب ${letter.number}/${letter.year}` : 'معاينة الخطاب'}
+            {isLoading ? 'جاري تحميل الخطاب...' : letter ? `معاينة الخطاب ${letter.letter_reference || `${letter.number}/${letter.year}`}` : 'معاينة الخطاب'}
           </h3>
           <button 
             onClick={onClose}
@@ -236,13 +237,24 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                     <p className="font-medium">{letter.content.to || 'غير محدد'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">الرقم</p>
-                    <p className="font-medium">{letter.number}/{letter.year}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">المرجع</p>
+                    <p className="font-medium font-mono text-blue-800 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded inline-block">
+                      {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">التاريخ</p>
                     <p className="font-medium">{letter.content.date || new Date(letter.created_at).toLocaleDateString('ar')}</p>
                   </div>
+                  {letter.branch_code && (
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">الفرع</p>
+                      <p className="font-medium flex items-center gap-1.5">
+                        <Building className="h-4 w-4 text-gray-500" />
+                        <span>{letter.branch_code}</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -255,8 +267,11 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
                 direction: 'rtl'
               }}>
                 <div className="absolute inset-0">
-                  <div className="absolute top-[25px] left-[85px] w-10 p-1 text-sm font-semibold text-center">
-                    {letter.number}
+                  {/* رقم الخطاب - مرجع الخطاب المركب */}
+                  <div className="absolute top-[25px] left-[85px] w-32 text-right">
+                    <span className="font-medium text-sm">
+                      {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+                    </span>
                   </div>
                   <div className="absolute top-[60px] left-[40px] w-32 p-1 text-sm font-semibold text-center">
                     {letter.content.date}
@@ -322,7 +337,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // QRCode component

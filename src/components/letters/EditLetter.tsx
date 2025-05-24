@@ -1,36 +1,36 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, Save, Eye, Settings } from 'lucide-react'
-import { useLetters } from '../../hooks/useLetters'
-import { RichTextEditor } from '../../components/letters/RichTextEditor'
-import { supabase } from '../../lib/supabase'
-import moment from 'moment-hijri'
-import type { Letter, Template } from '../../types/database'
-import { exportToPDF } from '../../lib/pdf-export' // استخدام نظام التصدير الجديد
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowRight, Save, Eye, Settings, Building } from 'lucide-react';
+import { useLetters } from '../../hooks/useLetters';
+import { RichTextEditor } from '../../components/letters/RichTextEditor';
+import { supabase } from '../../lib/supabase';
+import moment from 'moment-hijri';
+import type { Letter, Template } from '../../types/database';
+import { exportToPDF } from '../../lib/pdf-export'; // استخدام نظام التصدير الجديد
 
 const MONTHS_AR = [
   'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني',
   'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان',
   'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
-]
+];
 
 export function EditLetter() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const [isLoading, setIsLoading] = useState(false)
-  const { updateLetter } = useLetters()
-  const [letter, setLetter] = useState<Letter | null>(null)
-  const [template, setTemplate] = useState<Template | null>(null)
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [content, setContent] = useState<Record<string, string>>({})
-  const [showGuides, setShowGuides] = useState(false)
-  const [previewMode, setPreviewMode] = useState(false)
-  const [lineHeight, setLineHeight] = useState(0)
-  const [letterRef, setLetterRef] = useState<HTMLDivElement | null>(null)
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const { updateLetter } = useLetters();
+  const [letter, setLetter] = useState<Letter | null>(null);
+  const [template, setTemplate] = useState<Template | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [content, setContent] = useState<Record<string, string>>({});
+  const [showGuides, setShowGuides] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [lineHeight, setLineHeight] = useState(0);
+  const [letterRef, setLetterRef] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    loadLetter()
-  }, [id])
+    loadLetter();
+  }, [id]);
 
   async function loadLetter() {
     try {
@@ -38,44 +38,44 @@ export function EditLetter() {
         .from('letters')
         .select('*, letter_templates(*)')
         .eq('id', id)
-        .single()
+        .single();
 
-      if (error) throw error
+      if (error) throw error;
 
-      setLetter(letter)
-      setTemplate(letter.letter_templates)
-      setContent(letter.content)
+      setLetter(letter);
+      setTemplate(letter.letter_templates);
+      setContent(letter.content);
     } catch (error) {
-      console.error('Error:', error)
-      alert('حدث خطأ أثناء تحميل الخطاب')
-      navigate('/admin/letters')
+      console.error('Error:', error);
+      alert('حدث خطأ أثناء تحميل الخطاب');
+      navigate('/admin/letters');
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!letter) return
+    e.preventDefault();
+    if (!letter) return;
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       await updateLetter({
         id: letter.id,
         content,
         status: 'draft',
         updated_at: new Date().toISOString()
-      })
+      });
 
-      navigate('/admin/letters')
+      navigate('/admin/letters');
     } catch (error) {
-      console.error('Error:', error)
-      alert('حدث خطأ أثناء حفظ الخطاب')
+      console.error('Error:', error);
+      alert('حدث خطأ أثناء حفظ الخطاب');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
   function handleDateClick() {
-    setShowDatePicker(true)
+    setShowDatePicker(true);
   }
 
   function handleDateSelect(day: number, month: number, year: number) {
@@ -83,23 +83,23 @@ export function EditLetter() {
       .iYear(year)
       .iMonth(month)
       .iDate(day)
-      .format('iDD/iMM/iYYYY')
-    setContent(prev => ({ ...prev, date }))
-    setShowDatePicker(false)
+      .format('iDD/iMM/iYYYY');
+    setContent(prev => ({ ...prev, date }));
+    setShowDatePicker(false);
   }
 
   async function handleExport() {
-    if (!letter) return
+    if (!letter) return;
     
     try {
       await exportToPDF(letter, {
         scale: 3.0,
         quality: 0.99,
-        filename: `خطاب-${letter.number}-${letter.year}.pdf`
-      })
+        filename: `${letter.letter_reference || `خطاب-${letter.number}-${letter.year}`}.pdf`
+      });
     } catch (error) {
-      console.error('Error exporting:', error)
-      alert('حدث خطأ أثناء تصدير الخطاب')
+      console.error('Error exporting:', error);
+      alert('حدث خطأ أثناء تصدير الخطاب');
     }
   }
 
@@ -112,19 +112,19 @@ export function EditLetter() {
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
-    )
+    );
   }
 
-  const today = moment()
-  const currentHijriYear = today.iYear()
-  const currentHijriMonth = today.iMonth()
-  const currentHijriDay = today.iDate()
-  const daysInMonth = today.iDaysInMonth()
+  const today = moment();
+  const currentHijriYear = today.iYear();
+  const currentHijriMonth = today.iMonth();
+  const currentHijriDay = today.iDate();
+  const daysInMonth = today.iDaysInMonth();
 
   // استخدام template_snapshot إذا كان متاحًا، وإلا استخدام letter_templates
   const templateData = letter.template_snapshot || letter.letter_templates;
   
-  // الحصول على موضع رمز QR إذا كان متاحاً
+  // الحصول على موضع رمز QR إذا كان متاحًا
   const qrPosition = templateData?.qr_position || {
     x: 40,
     y: 760,
@@ -227,6 +227,15 @@ export function EditLetter() {
                   placeholder="أدخل الجهة المرسل إليها"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">مرجع الخطاب</label>
+                <div className="flex items-center gap-2">
+                  <div className="bg-blue-50 px-2 py-1 rounded text-blue-800 font-mono flex items-center gap-1.5">
+                    <Building className="h-4 w-4 text-blue-600" />
+                    <span>{letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <h3 className="text-lg font-semibold mb-4">محرر النصوص</h3>
@@ -256,26 +265,28 @@ export function EditLetter() {
               <div className="absolute inset-0">
                 {showGuides && (
                   <>
-                    <div className="absolute top-[48px] left-[100px] w-8 h-6 border-2 border-yellow-500 rounded pointer-events-none" />
-                    <div className="absolute top-[83px] left-[100px] w-24 h-6 border-2 border-yellow-500 rounded pointer-events-none" />
-                    <div className="absolute top-[200px] right-[60px] left-[60px] h-[520px] border-2 border-yellow-500 rounded pointer-events-none" />
-                    <div className="absolute top-[48px] left-[100px] -translate-x-full whitespace-nowrap text-xs text-yellow-600">
-                      موقع الرقم
+                    <div className="absolute top-[25px] left-[85px] w-32 h-6 border-2 border-yellow-500 rounded pointer-events-none" />
+                    <div className="absolute top-[60px] left-[40px] w-32 h-6 border-2 border-yellow-500 rounded pointer-events-none" />
+                    <div className="absolute top-[120px] right-[60px] left-[60px] h-[520px] border-2 border-yellow-500 rounded pointer-events-none" />
+                    <div className="absolute top-[25px] left-[125px] -translate-x-full whitespace-nowrap text-xs text-yellow-600">
+                      موقع المرجع
                     </div>
-                    <div className="absolute top-[83px] left-[100px] -translate-x-full whitespace-nowrap text-xs text-yellow-600">
+                    <div className="absolute top-[60px] left-[85px] -translate-x-full whitespace-nowrap text-xs text-yellow-600">
                       موقع التاريخ
                     </div>
-                    <div className="absolute top-[200px] right-[60px] -translate-y-6 text-xs text-yellow-600">
+                    <div className="absolute top-[120px] right-[60px] -translate-y-6 text-xs text-yellow-600">
                       منطقة المحتوى
                     </div>
                   </>
                 )}
-                <input
-                  type="text"
-                  value={letter.number ?? ''}
-                  readOnly
-                  className="absolute top-[25px] left-[85px] w-8 p-3 text-sm font-semibold bg-transparent text-center"
-                />
+                
+                {/* مرجع الخطاب المركب */}
+                <div className="absolute top-[25px] left-[85px] w-32 text-right">
+                  <span className="font-medium text-sm">
+                    {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+                  </span>
+                </div>
+                
                 <input
                   type="text"
                   value={content.date ?? ''}
@@ -358,5 +369,5 @@ export function EditLetter() {
         </div>
       </div>
     </div>
-  )
+  );
 }

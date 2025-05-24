@@ -1,41 +1,41 @@
-import html2canvas from 'html2canvas'
-import { Letter } from '../types/database'
-import { useToast } from '../hooks/useToast'
-import 'canvas-to-blob'
-import { exportToPDF } from './pdf-export'
+import html2canvas from 'html2canvas';
+import { Letter } from '../types/database';
+import { useToast } from '../hooks/useToast';
+import 'canvas-to-blob';
+import { exportToPDF } from './pdf-export';
 
 // دالة للتحقق من حالة الاتصال
 export async function checkConnection(): Promise<boolean> {
   try {
-    const response = await fetch(window.location.origin, { method: 'HEAD' })
-    return response.ok
+    const response = await fetch(window.location.origin, { method: 'HEAD' });
+    return response.ok;
   } catch {
-    return false
+    return false;
   }
 }
 
 // طباعة الخطاب
 export async function printLetter(letter: Letter, withTemplate: boolean = true) {
   // إظهار مؤشر التحميل
-  const loadingDiv = document.createElement('div')
-  loadingDiv.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50'
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
   loadingDiv.innerHTML = `
     <div class="bg-white rounded-lg p-4 flex items-center gap-x-3">
       <div class="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
       <span>جاري تجهيز الخطاب...</span>
     </div>
-  `
-  document.body.appendChild(loadingDiv)
+  `;
+  document.body.appendChild(loadingDiv);
   
   try {
     // استخدام template_snapshot إذا كان متاحاً، وإلا استخدام letter_templates
-    const templateData = letter.template_snapshot || letter.letter_templates
+    const templateData = letter.template_snapshot || letter.letter_templates;
     
     // انتظار تحميل الخط
-    await document.fonts.ready
+    await document.fonts.ready;
 
-    const printWindow = window.open('', '_blank')
-    if (!printWindow) throw new Error('لم نتمكن من فتح نافذة الطباعة')
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) throw new Error('لم نتمكن من فتح نافذة الطباعة');
 
     // محتوى الصفحة
     let pageHtml = `
@@ -95,7 +95,7 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
                 display: none !important;
               }
             }
-    `
+    `;
 
     // جزء محتوى الخطاب استناداً إلى الخيار المحدد
     if (withTemplate && templateData?.image_url) {
@@ -109,15 +109,15 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
               background-size: 100% 100%;
               background-repeat: no-repeat;
             }
-            .letter-number {
+            .letter-reference {
               position: absolute;
               top: 25px;
               left: 85px;
-              width: 40px;
-              text-align: center;
+              width: 32px;
+              text-align: right;
               font-size: 14px;
               font-weight: 600;
-              direction: ltr;
+              font-family: 'Cairo', sans-serif;
             }
             .letter-date {
               position: absolute;
@@ -165,7 +165,7 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
               content: "" !important;
               margin-top: 0.3em !important;
             }
-      `
+      `;
     } else {
       pageHtml += `
             .letter-container {
@@ -188,7 +188,7 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
               display: flex;
               flex-direction: column;
             }
-            .letter-number {
+            .letter-reference {
               font-weight: 600;
               margin-bottom: 10px;
             }
@@ -236,7 +236,7 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
               content: "" !important;
               margin-top: 0.7em !important;
             }
-      `
+      `;
     }
 
     pageHtml += `
@@ -253,50 +253,51 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
               إغلاق
             </button>
           </div>
-    `
+    `;
 
     // جزء محتوى الخطاب استناداً إلى الخيار المحدد
     if (withTemplate && templateData?.image_url) {
       pageHtml += `
-          <div class="letter-container">
-            <div class="letter-number">${letter.number || ''}</div>
-            <div class="letter-date">${letter.content.date || ''}</div>
-            <div class="letter-content">${letter.content.body || ''}</div>
-            ${(letter.verification_url || letter.content.verification_url) ? `
-              <div class="qr-code">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(
-                  `${window.location.origin}/verify/${letter.verification_url || letter.content.verification_url}`
-                )}" alt="رمز التحقق">
-                <div class="qr-code-text">رمز التحقق</div>
-              </div>
-            ` : ''}
-          </div>
-      `
+        <div class="letter-container">
+          <div class="letter-reference">${letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}</div>
+          <div class="letter-date">${letter.content.date || ''}</div>
+          <div class="letter-content">${letter.content.body || ''}</div>
+    `;
     } else {
       pageHtml += `
-          <div class="letter-container">
-            <div class="letter-header">
-              <div class="letter-info">
-                <div class="letter-number">رقم الخطاب: ${letter.number}/${letter.year}</div>
-                <div class="letter-date">التاريخ: ${letter.content.date || ''}</div>
-              </div>
-            </div>
-            <div class="letter-content">${letter.content.body || ''}</div>
-            <div class="letter-footer">
-              ${(letter.verification_url || letter.content.verification_url) ? `
-                <div class="qr-code">
-                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(
-                    `${window.location.origin}/verify/${letter.verification_url || letter.content.verification_url}`
-                  )}" alt="رمز التحقق">
-                  <div class="qr-code-text">رمز التحقق</div>
-                </div>
-              ` : ''}
+        <div class="letter-container">
+          <div class="letter-header">
+            <div class="letter-info">
+              <div class="letter-reference">المرجع: ${letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}</div>
+              <div class="letter-date">التاريخ: ${letter.content.date || ''}</div>
             </div>
           </div>
-      `
+          <div class="letter-content">${letter.content.body || ''}</div>
+          <div class="letter-footer">
+    `;
     }
-
+    
+    // إضافة رمز QR
+    if (letter.verification_url || letter.content.verification_url) {
+      const verificationUrl = letter.verification_url || letter.content.verification_url;
+      
+      pageHtml += `
+            <div class="qr-code">
+              <img 
+                src="https://api.qrserver.com/v1/create-qr-code/?size=${withTemplate ? '80x80' : '100x100'}&data=${encodeURIComponent(
+                  `${window.location.origin}/verify/${verificationUrl}`
+                )}" 
+                alt="رمز التحقق"
+              >
+              <div class="qr-code-text">رمز التحقق</div>
+            </div>
+      `;
+    }
+    
+    // إغلاق الحاويات وإضافة نص البرمجة
     pageHtml += `
+          </div>
+          
           <script>
             // انتظار تحميل الصفحة والخطوط
             Promise.all([
@@ -309,7 +310,7 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
               })
               ` : 'Promise.resolve()'}
             ]).then(() => {
-              // انتظار لحظة قبل الطباعة للتأكد من تحميل كل شيء
+              // تأخير قصير قبل الطباعة للتأكد من تحميل كل شيء
               setTimeout(() => {
                 document.querySelector('.toolbar').style.display = 'flex';
               }, 500);
@@ -317,22 +318,22 @@ export async function printLetter(letter: Letter, withTemplate: boolean = true) 
           </script>
         </body>
       </html>
-    `
+    `;
 
-    printWindow.document.write(pageHtml)
-    printWindow.document.close()
+    printWindow.document.write(pageHtml);
+    printWindow.document.close();
   } catch (error) {
-    console.error('Error:', error)
-    throw new Error('حدث خطأ أثناء الطباعة')
+    console.error('Error:', error);
+    throw new Error('حدث خطأ أثناء الطباعة');
   } finally {
-    hideLoading(loadingDiv)
+    hideLoading(loadingDiv);
   }
 }
 
 // إخفاء مؤشر التحميل
 function hideLoading(loadingDiv: HTMLElement) {
   if (loadingDiv && loadingDiv.parentNode) {
-    loadingDiv.parentNode.removeChild(loadingDiv)
+    loadingDiv.parentNode.removeChild(loadingDiv);
   }
 }
 
@@ -343,7 +344,7 @@ export async function exportLetterToPDF(letter: Letter, withTemplate: boolean = 
       withTemplate: withTemplate,
       scale: 3.0,
       quality: 0.95,
-      filename: `خطاب-${letter.number || '0'}-${letter.year || new Date().getFullYear()}.pdf`
+      filename: `${letter.letter_reference || `خطاب-${letter.number}-${letter.year}`}.pdf`
     });
     return true;
   } catch (error) {

@@ -31,7 +31,7 @@ let fontLoaded = false;
  */
 export async function exportToPDF(letter: Letter, options: ExportPDFOptions = {}): Promise<void> {
   // الإعدادات الافتراضية
-  const filename = options.filename || `خطاب-${letter.number || 0}-${letter.year || new Date().getFullYear()}.pdf`;
+  const filename = options.filename || `${letter.letter_reference || `خطاب-${letter.number}-${letter.year}`}.pdf`;
   const scale = options.scale || 3.0; // تحسين: تقليل الدقة من 4.0 إلى 3.0 للتوازن بين الجودة والأداء
   const quality = options.quality || 0.95; // تحسين: تقليل الجودة من 0.99 إلى 0.95
   const withTemplate = options.withTemplate !== undefined ? options.withTemplate : true;
@@ -110,7 +110,7 @@ export async function exportToPDF(letter: Letter, options: ExportPDFOptions = {}
     
     // 6. إضافة البيانات الوصفية
     pdf.setProperties({
-      title: `خطاب ${letter.number || 0}-${letter.year || new Date().getFullYear()}`,
+      title: `${letter.letter_reference || `خطاب-${letter.number}-${letter.year}`}`,
       subject: letter.content.subject || 'خطاب',
       author: letter.creator_name || 'نظام الخطابات',
       keywords: 'خطاب, رسمي',
@@ -293,22 +293,21 @@ async function createLetterElement(letter: Letter, withTemplate: boolean): Promi
     direction: rtl;
   `;
   
-  // رقم الخطاب
-  const numberElement = document.createElement('div');
-  numberElement.style.cssText = `
+  // مرجع الخطاب المركب
+  const referenceElement = document.createElement('div');
+  referenceElement.style.cssText = `
     position: absolute;
     top: 25px;
     left: 85px;
-    width: 40px;
-    text-align: center;
+    width: 32px;
+    text-align: right;
     font-size: 14px;
     font-weight: 600;
     font-family: 'Cairo', sans-serif;
     color: #000;
-    transform: translateY(-5px);
   `;
-  numberElement.textContent = letter.number?.toString() || '';
-  contentLayer.appendChild(numberElement);
+  referenceElement.textContent = letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`;
+  contentLayer.appendChild(referenceElement);
   
   // تاريخ الخطاب
   const dateElement = document.createElement('div');

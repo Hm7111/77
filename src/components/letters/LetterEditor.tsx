@@ -1,147 +1,143 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Save, FileText, Clock, Calendar, PlusCircle, Settings, 
-  Eye, Download, Printer, CheckCircle, Share2, Copy, Sliders,
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  ArrowRight, Save, FileText, Settings, 
+  Eye, Download, Printer, CheckCircle, History, Copy, Share2, Sliders,
   BookTemplate as FileTemplate, ListPlus, RefreshCw, QrCode
-} from 'lucide-react'
-import QRCode from 'qrcode.react'
-import moment from 'moment-hijri'
-import { useLetters } from '../../hooks/useLetters'
-import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../lib/auth'
-import { exportLetterToPDF, printLetter } from '../../lib/letter-utils'
-import TemplateSelector from './TemplateSelector'
-import { RichTextEditor } from './RichTextEditor'
-import { useToast } from '../../hooks/useToast'
-import { TextTemplateSelector } from './TextTemplateSelector'
-import { EditorSelector } from './EditorSelector'
-import { useNextNumber } from '../../features/letters/hooks/useNextNumber'
+} from 'lucide-react';
+import QRCode from 'qrcode.react';
+import moment from 'moment-hijri';
+import { useLetters } from '../../hooks/useLetters';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../lib/auth';
+import { exportLetterToPDF, printLetter } from '../../lib/letter-utils';
+import TemplateSelector from './TemplateSelector';
+import { RichTextEditor } from './RichTextEditor';
+import { useToast } from '../../hooks/useToast';
+import { TextTemplateSelector } from './TextTemplateSelector';
+import { EditorSelector } from './EditorSelector';
 
 const MONTHS_AR = [
   'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني',
   'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان',
   'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
-]
+];
 
 export function LetterEditor() {
-  const navigate = useNavigate()
-  const { toast } = useToast()
-  const letterPreviewRef = useRef<HTMLDivElement>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [activeStep, setActiveStep] = useState(1)
-  const { saveDraft, createLetter } = useLetters()
-  const [templates, setTemplates] = useState([])
-  const [selectedTemplate, setSelectedTemplate] = useState(null)
-  const [templateId, setTemplateId] = useState('')
-  const [showDatePicker, setShowDatePicker] = useState(false)
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const letterPreviewRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeStep, setActiveStep] = useState(1);
+  const { saveDraft, createLetter } = useLetters();
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [templateId, setTemplateId] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [content, setContent] = useState<Record<string, string>>({
     date: moment().format('iDD/iMM/iYYYY'),
     subject: '',
     to: ''
-  })
-  const { dbUser, user } = useAuth()
-  const { 
-    loadNextNumber, 
-    nextNumber, 
-    currentYear,
-    branchCode, 
-    letterReference 
-  } = useNextNumber()
-  
-  const [previewMode, setPreviewMode] = useState(false)
-  const [showGuides, setShowGuides] = useState(false)
-  const [showEditorControls, setShowEditorControls] = useState(true)
-  const [isExporting, setIsExporting] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
-  const [autosaveEnabled, setAutosaveEnabled] = useState(true)
+  });
+  const { dbUser, user } = useAuth();
+  const [currentYear] = useState(new Date().getFullYear());
+  const [nextNumber, setNextNumber] = useState<number | null>(null);
+  const [branchCode, setBranchCode] = useState<string>(''); // رمز الفرع
+  const [letterReference, setLetterReference] = useState<string>(''); // مرجع الخطاب المركب
+  const [previewMode, setPreviewMode] = useState(false);
+  const [showGuides, setShowGuides] = useState(false);
+  const [showEditorControls, setShowEditorControls] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [autosaveEnabled, setAutosaveEnabled] = useState(true);
   const [editorConfig, setEditorConfig] = useState({
     fontSize: '16px',
     lineHeight: 0,
     fontFamily: 'Cairo',
-  })
+  });
   // Add loading state for templates
-  const [loadingTemplates, setLoadingTemplates] = useState(false)
-  const [templateLoadError, setTemplateLoadError] = useState(false)
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [templateLoadError, setTemplateLoadError] = useState(false);
 
   // حالة النمط الحالي للمحرر (داخل القالب / خارج القالب)
-  const [editorStyle, setEditorStyle] = useState<'inside' | 'outside'>('outside')
+  const [editorStyle, setEditorStyle] = useState<'inside' | 'outside'>('outside');
 
   // حجم المعاينة
-  const [previewScale, setPreviewScale] = useState<'fit' | 'actual'>('fit')
+  const [previewScale, setPreviewScale] = useState<'fit' | 'actual'>('fit');
 
   // حالة المعاينة التلقائية
-  const [livePreview, setLivePreview] = useState(true)
+  const [livePreview, setLivePreview] = useState(true);
   
   // إضافة حالة لإظهار محدد النماذج النصية
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false)
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   
   // إضافة حالة لإخفاء رمز QR في المحرر
-  const [showQRInEditor, setShowQRInEditor] = useState(false)
+  const [showQRInEditor, setShowQRInEditor] = useState(false);
   
   // حالة نوع المحرر
-  const [editorType, setEditorType] = useState<'tinymce'>('tinymce')
+  const [editorType, setEditorType] = useState<'tinymce'>('tinymce');
 
   useEffect(() => {
-    loadTemplates()
+    loadTemplates();
     
     // حفظ المسودة تلقائياً كل دقيقة
-    let autosaveInterval: ReturnType<typeof setInterval>
+    let autosaveInterval: ReturnType<typeof setInterval>;
     
     if (autosaveEnabled) {
       autosaveInterval = setInterval(() => {
         if (templateId && content.body && dbUser?.id) {
-          handleAutosave()
+          handleAutosave();
         }
-      }, 60000)
+      }, 60000);
     }
     
     return () => {
-      if (autosaveInterval) clearInterval(autosaveInterval)
-    }
-  }, [templateId, content, dbUser?.id, autosaveEnabled])
+      if (autosaveInterval) clearInterval(autosaveInterval);
+    };
+  }, [templateId, content, dbUser?.id, autosaveEnabled]);
 
   useEffect(() => {
     if (templateId) {
-      loadNextNumber(templateId)
+      loadNextNumber();
       // Load selected template details
-      loadSelectedTemplate()
+      loadSelectedTemplate();
     }
-  }, [templateId])
+  }, [templateId]);
 
   async function loadTemplates() {
-    setLoadingTemplates(true)
-    setTemplateLoadError(false)
+    setLoadingTemplates(true);
+    setTemplateLoadError(false);
     
     try {
       const { data, error } = await supabase
         .from('letter_templates')
         .select('*')
         .eq('is_active', true)
-        .order('name')
+        .order('name');
 
-      if (error) throw error
-      setTemplates(data)
-      setTemplateLoadError(false)
+      if (error) throw error;
+      setTemplates(data);
+      setTemplateLoadError(false);
     } catch (error) {
-      console.error('Error loading templates:', error)
-      setTemplateLoadError(true)
+      console.error('Error loading templates:', error);
+      setTemplateLoadError(true);
       
       // Provide more specific error message based on error type
-      let errorMessage = 'حدث خطأ أثناء تحميل القوالب'
+      let errorMessage = 'حدث خطأ أثناء تحميل القوالب';
       
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorMessage = 'تعذر الاتصال بالخادم. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.'
+        errorMessage = 'تعذر الاتصال بالخادم. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.';
       } else if (error instanceof Error) {
-        errorMessage = `حدث خطأ: ${error.message}`
+        errorMessage = `حدث خطأ: ${error.message}`;
       }
       
       toast({
         title: 'خطأ',
         description: errorMessage,
         type: 'error'
-      })
+      });
     } finally {
-      setLoadingTemplates(false)
+      setLoadingTemplates(false);
     }
   }
 
@@ -167,57 +163,102 @@ export function LetterEditor() {
     }
   }
 
+  async function loadNextNumber() {
+    try {
+      // الحصول على معلومات الفرع للمستخدم الحالي
+      let branchCodeValue = 'GEN'; // قيمة افتراضية
+      
+      if (dbUser?.branch_id) {
+        const { data: branchData, error: branchError } = await supabase
+          .from('branches')
+          .select('code')
+          .eq('id', dbUser.branch_id)
+          .single();
+        
+        if (branchError) {
+          console.error('Error fetching branch code:', branchError);
+        } else if (branchData) {
+          branchCodeValue = branchData.code;
+        }
+      }
+      
+      // تعيين رمز الفرع
+      setBranchCode(branchCodeValue);
+      
+      // الحصول على الرقم التالي للخطابات في الفرع والسنة الحالية
+      const { data, error } = await supabase
+        .from('letters')
+        .select('number')
+        .eq('year', currentYear)
+        .eq('branch_code', branchCodeValue)
+        .order('number', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      const nextNum = data && data.length > 0 ? data[0].number + 1 : 1;
+      setNextNumber(nextNum);
+      
+      // إنشاء مرجع الخطاب المركب
+      const reference = `${branchCodeValue}-${nextNum}/${currentYear}`;
+      setLetterReference(reference);
+      
+      // تعيين المرجع في محتوى الخطاب
+      setContent(prev => ({
+        ...prev,
+        number: String(nextNum),
+        branch_code: branchCodeValue,
+        letter_reference: reference
+      }));
+    } catch (error) {
+      console.error('Error loading next number:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء تحميل رقم الخطاب التالي',
+        type: 'warning'
+      });
+    }
+  }
+
   async function handleAutosave() {
-    if (!dbUser?.id || !templateId || !content.body) return
+    if (!dbUser?.id || !templateId || !content.body) return;
     
     try {
-      // استخدام الترقيم المركب للخطاب
-      const result = await loadNextNumber(templateId);
-      
-      if (!result) return;
-      
       await saveDraft({
         user_id: dbUser.id,
         template_id: templateId,
         content,
         status: 'draft',
-        number: result.number,
+        number: nextNumber,
         year: currentYear,
-        branch_code: result.branchCode, // إضافة رمز الفرع
         creator_name: dbUser?.full_name || user?.email,
         sync_status: 'pending',
-        letter_reference: result.reference // إضافة مرجع الخطاب المركب
-      })
+        branch_code: branchCode,
+        letter_reference: letterReference
+      });
       
-      console.log('تم الحفظ التلقائي للمسودة')
+      console.log('تم الحفظ التلقائي للمسودة');
     } catch (error) {
-      console.error('Error auto-saving draft:', error)
+      console.error('Error auto-saving draft:', error);
     }
   }
 
   async function handleSubmit(e?: React.FormEvent) {
-    if (e) e.preventDefault()
-    setIsLoading(true)
-    const verificationUrl = crypto.randomUUID()
+    if (e) e.preventDefault();
+    setIsLoading(true);
+    const verificationUrl = crypto.randomUUID();
 
     try {
       if (!dbUser?.id || !templateId) {
-        throw new Error('يجب تسجيل الدخول واختيار قالب')
+        throw new Error('يجب تسجيل الدخول واختيار قالب');
       }
 
       if (!content.subject || !content.to) {
-        throw new Error('يجب إدخال موضوع الخطاب والجهة المرسل إليها')
+        throw new Error('يجب إدخال موضوع الخطاب والجهة المرسل إليها');
       }
 
       if (!content.body) {
-        throw new Error('يجب إدخال محتوى الخطاب')
-      }
-
-      // الحصول على معلومات الترقيم
-      const result = await loadNextNumber(templateId);
-      
-      if (!result) {
-        throw new Error('فشل في الحصول على رقم الخطاب التالي');
+        throw new Error('يجب إدخال محتوى الخطاب');
       }
 
       // Store template snapshot data in content to ensure it's preserved
@@ -236,45 +277,44 @@ export function LetterEditor() {
         template_snapshot: templateSnapshot,
         content: {
           ...content,
-          verification_url: verificationUrl,
-          reference: result.reference // إضافة المرجع المركب للخطاب
+          verification_url: verificationUrl
         },
         status: 'completed',
-        number: result.number,
+        number: nextNumber,
         year: currentYear,
-        branch_code: result.branchCode, // إضافة رمز الفرع
         creator_name: dbUser?.full_name || user?.email,
         sync_status: 'pending',
         verification_url: verificationUrl,
-        letter_reference: result.reference // إضافة مرجع الخطاب المركب
-      })
+        branch_code: branchCode,
+        letter_reference: letterReference
+      });
 
-      await createLetter(draft)
+      await createLetter(draft);
       
       // إظهار رسالة النجاح
       toast({
         title: 'تم الحفظ',
-        description: `تم حفظ الخطاب ${result.reference} بنجاح`,
+        description: 'تم حفظ الخطاب بنجاح',
         type: 'success'
-      })
+      });
       
-      setIsSaved(true)
-      setTimeout(() => navigate('/admin/letters'), 2000)
+      setIsSaved(true);
+      setTimeout(() => navigate('/admin/letters'), 2000);
     } catch (error) {
-      console.error('Error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع أثناء إنشاء الخطاب'
+      console.error('Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'حدث خطأ غير متوقع أثناء إنشاء الخطاب';
       toast({
         title: 'خطأ',
         description: errorMessage,
         type: 'error'
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
   function handleDateClick() {
-    setShowDatePicker(true)
+    setShowDatePicker(true);
   }
 
   function handleDateSelect(day: number, month: number, year: number) {
@@ -282,30 +322,23 @@ export function LetterEditor() {
       .iYear(year)
       .iMonth(month)
       .iDate(day)
-      .format('iDD/iMM/iYYYY')
-    setContent(prev => ({ ...prev, date }))
-    setShowDatePicker(false)
+      .format('iDD/iMM/iYYYY');
+    setContent(prev => ({ ...prev, date }));
+    setShowDatePicker(false);
     
     // إغلاق التقويم عند النقر خارجه
-    document.addEventListener('click', () => setShowDatePicker(false), { once: true })
+    document.addEventListener('click', () => setShowDatePicker(false), { once: true });
   }
 
   async function handlePrint() {
-    if (!templateId || !content.body) return
+    if (!templateId || !content.body) return;
     
     try {
       toast({
         title: 'جارِ الطباعة...',
         description: 'يتم تجهيز الخطاب للطباعة',
         type: 'info'
-      })
-      
-      // الحصول على معلومات الترقيم
-      const result = await loadNextNumber(templateId);
-      
-      if (!result) {
-        throw new Error('فشل في الحصول على معلومات الترقيم');
-      }
+      });
       
       // Create a temporary letter object for print purposes
       const tempLetter = {
@@ -320,48 +353,38 @@ export function LetterEditor() {
           zones: selectedTemplate.zones,
           version: selectedTemplate.version
         } : undefined,
-        content: {
-          ...content,
-          reference: result.reference // إضافة مرجع الخطاب
-        },
+        content,
         status: 'draft',
-        number: result.number,
+        number: nextNumber || 0,
         year: currentYear,
-        branch_code: result.branchCode, // إضافة رمز الفرع
-        letter_reference: result.reference, // إضافة مرجع الخطاب
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        letter_templates: selectedTemplate
-      }
+        letter_templates: selectedTemplate,
+        branch_code: branchCode,
+        letter_reference: letterReference
+      };
       
-      await printLetter(tempLetter)
+      await printLetter(tempLetter);
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error:', error);
       toast({
         title: 'خطأ',
         description: 'حدث خطأ أثناء الطباعة',
         type: 'error'
-      })
+      });
     }
   }
 
   async function handleExportPDF() {
-    if (!templateId || !content.body) return
+    if (!templateId || !content.body) return;
     
-    setIsExporting(true)
+    setIsExporting(true);
     try {
       toast({
         title: 'جارِ التصدير...',
         description: 'يتم تصدير الخطاب كملف PDF',
         type: 'info'
-      })
-      
-      // الحصول على معلومات الترقيم
-      const result = await loadNextNumber(templateId);
-      
-      if (!result) {
-        throw new Error('فشل في الحصول على معلومات الترقيم');
-      }
+      });
       
       // Create a temporary letter object for export purposes
       const tempLetter = {
@@ -376,116 +399,113 @@ export function LetterEditor() {
           zones: selectedTemplate.zones,
           version: selectedTemplate.version
         } : undefined,
-        content: {
-          ...content,
-          reference: result.reference // إضافة مرجع الخطاب
-        },
+        content,
         status: 'draft',
-        number: result.number,
+        number: nextNumber || 0,
         year: currentYear,
-        branch_code: result.branchCode, // إضافة رمز الفرع
-        letter_reference: result.reference, // إضافة مرجع الخطاب
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        letter_templates: selectedTemplate
-      }
+        letter_templates: selectedTemplate,
+        branch_code: branchCode,
+        letter_reference: letterReference
+      };
       
-      await exportLetterToPDF(tempLetter)
+      await exportLetterToPDF(tempLetter);
       
       toast({
         title: 'تم التصدير',
         description: 'تم تصدير الخطاب بنجاح',
         type: 'success'
-      })
+      });
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error:', error);
       toast({
         title: 'خطأ',
         description: 'حدث خطأ أثناء تصدير الملف',
         type: 'error'
-      })
+      });
     } finally {
-      setIsExporting(false)
+      setIsExporting(false);
     }
   }
 
   // نسخ رابط رمز QR
   function copyVerificationUrl() {
-    if (!content.verification_url) return
+    if (!content.verification_url) return;
     
-    const url = `${window.location.origin}/verify/${content.verification_url}`
+    const url = `${window.location.origin}/verify/${content.verification_url}`;
     navigator.clipboard.writeText(url)
       .then(() => {
         toast({
           title: 'تم النسخ',
           description: 'تم نسخ رابط التحقق بنجاح',
           type: 'success'
-        })
+        });
       })
       .catch(() => {
         toast({
           title: 'خطأ',
           description: 'حدث خطأ أثناء نسخ الرابط',
           type: 'error'
-        })
-      })
+        });
+      });
   }
 
   function toggleEditorStyle() {
-    setEditorStyle(prev => prev === 'inside' ? 'outside' : 'inside')
+    setEditorStyle(prev => prev === 'inside' ? 'outside' : 'inside');
   }
 
   // وظيفة لتغيير حجم المعاينة
   function togglePreviewScale() {
-    setPreviewScale(prev => prev === 'fit' ? 'actual' : 'fit')
+    setPreviewScale(prev => prev === 'fit' ? 'actual' : 'fit');
   }
   
   // وظيفة لتكبير منطقة المعاينة
   const zoomPreview = () => {
     if (letterPreviewRef.current) {
-      const modal = document.createElement('div')
-      modal.className = 'fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4'
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4';
       
-      const content = document.createElement('div')
-      content.className = 'bg-white rounded-lg max-h-[90vh] overflow-auto relative'
+      const content = document.createElement('div');
+      content.className = 'bg-white rounded-lg max-h-[90vh] overflow-auto relative';
       
       // زر الإغلاق
-      const closeBtn = document.createElement('button')
-      closeBtn.className = 'absolute top-2 right-2 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 z-10'
-      closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
-      closeBtn.onclick = () => document.body.removeChild(modal)
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'absolute top-2 right-2 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 z-10';
+      closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+      closeBtn.onclick = () => document.body.removeChild(modal);
       
       // نسخة من المعاينة
-      const preview = letterPreviewRef.current.cloneNode(true) as HTMLDivElement
-      preview.style.transform = 'scale(1)'
-      preview.style.transformOrigin = 'top center'
-      preview.style.overflow = 'hidden'
+      const preview = letterPreviewRef.current.cloneNode(true) as HTMLDivElement;
+      preview.style.transform = 'scale(1)';
+      preview.style.transformOrigin = 'top center';
+      preview.style.overflow = 'hidden';
       
-      content.appendChild(closeBtn)
-      content.appendChild(preview)
-      modal.appendChild(content)
+      content.appendChild(closeBtn);
+      content.appendChild(preview);
+      modal.appendChild(content);
       
       // أزرار التصدير والطباعة
-      const actions = document.createElement('div')
-      actions.className = 'flex items-center justify-center gap-4 p-4 bg-white border-t sticky bottom-0'
+      const actions = document.createElement('div');
+      actions.className = 'flex items-center justify-center gap-4 p-4 bg-white border-t sticky bottom-0';
       
-      const printBtn = document.createElement('button')
-      printBtn.className = 'flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-800'
-      printBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>طباعة'
-      printBtn.onclick = handlePrint
+      const printBtn = document.createElement('button');
+      printBtn.className = 'flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-800';
+      printBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>طباعة';
+      printBtn.onclick = handlePrint;
       
-      const exportBtn = document.createElement('button')
-      exportBtn.className = 'flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90'
-      exportBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>تصدير PDF'
-      exportBtn.onclick = handleExportPDF
+      const exportBtn = document.createElement('button');
+      exportBtn.className = 'flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90';
+      exportBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>تصدير PDF';
+      exportBtn.onclick = handleExportPDF;
       
-      actions.appendChild(printBtn)
-      actions.appendChild(exportBtn)
-      content.appendChild(actions)
+      actions.appendChild(printBtn);
+      actions.appendChild(exportBtn);
+      content.appendChild(actions);
       
-      document.body.appendChild(modal)
+      document.body.appendChild(modal);
     }
-  }
+  };
 
   // وظيفة للتعامل مع النماذج النصية
   function handleInsertTemplate(templateContent: string) {
@@ -509,11 +529,11 @@ export function LetterEditor() {
     setEditorConfig({...editorConfig, lineHeight: value});
   };
 
-  const today = moment()
-  const currentHijriYear = today.iYear()
-  const currentHijriMonth = today.iMonth()
-  const currentHijriDay = today.iDate()
-  const daysInMonth = today.iDaysInMonth()
+  const today = moment();
+  const currentHijriYear = today.iYear();
+  const currentHijriMonth = today.iMonth();
+  const currentHijriDay = today.iDate();
+  const daysInMonth = today.iDaysInMonth();
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -530,7 +550,7 @@ export function LetterEditor() {
             <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
             <h2 className="text-xl font-bold mb-2">تم حفظ الخطاب بنجاح</h2>
             <p className="text-gray-600 mb-6 text-center">
-              تم حفظ الخطاب {letterReference || ''} بنجاح وإضافته إلى سجل الخطابات
+              تم حفظ الخطاب بنجاح وإضافته إلى سجل الخطابات
             </p>
             <div className="flex gap-4">
               <button
@@ -541,9 +561,9 @@ export function LetterEditor() {
               </button>
               <button
                 onClick={() => {
-                  setIsSaved(false)
-                  navigate('new')
-                  window.location.reload()
+                  setIsSaved(false);
+                  navigate('new');
+                  window.location.reload();
                 }}
                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
               >
@@ -637,13 +657,13 @@ export function LetterEditor() {
                   // التحقق من إكمال الخطوات السابقة
                   if (i === 0 || (i === 1 && content.subject && content.to) || 
                       (i === 2 && templateId) || (i === 3 && content.body)) {
-                    setActiveStep(i + 1)
+                    setActiveStep(i + 1);
                   } else {
                     toast({
                       title: 'يجب إكمال الخطوات السابقة',
                       description: 'الرجاء إكمال الخطوات السابقة قبل المتابعة',
                       type: 'warning'
-                    })
+                    });
                   }
                 }}
               >
@@ -734,13 +754,13 @@ export function LetterEditor() {
               <button
                 onClick={() => {
                   if (content.subject && content.to) {
-                    setActiveStep(2)
+                    setActiveStep(2);
                   } else {
                     toast({
                       title: 'حقول مطلوبة',
                       description: 'يجب إدخال موضوع الخطاب والجهة المرسل إليها',
                       type: 'error'
-                    })
+                    });
                   }
                 }}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
@@ -793,8 +813,8 @@ export function LetterEditor() {
                 templates={templates}
                 selectedId={templateId}
                 onSelect={(id) => {
-                  setTemplateId(id)
-                  setActiveStep(3)
+                  setTemplateId(id);
+                  setActiveStep(3);
                 }}
               />
             )}
@@ -810,13 +830,13 @@ export function LetterEditor() {
               <button
                 onClick={() => {
                   if (templateId) {
-                    setActiveStep(3)
+                    setActiveStep(3);
                   } else {
                     toast({
                       title: 'اختيار القالب',
                       description: 'يجب اختيار قالب قبل المتابعة',
                       type: 'warning'
-                    })
+                    });
                   }
                 }}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
@@ -912,13 +932,6 @@ export function LetterEditor() {
               </div>
               
               <div className="flex items-center gap-1 mr-auto">
-                {/* عرض مرجع الخطاب المركب */}
-                {branchCode && (
-                  <div className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded-lg text-sm font-mono mr-2">
-                    {branchCode}-{nextNumber}/{currentYear}
-                  </div>
-                )}
-                
                 <span className="text-xs text-gray-500">حجم الخط:</span>
                 <select
                   value={editorConfig.fontSize}
@@ -1014,18 +1027,12 @@ export function LetterEditor() {
                         </>
                       )}
                       
-                      {/* مرجع الخطاب المركب */}
-                      <div className="absolute top-[5px] right-[35px] text-sm font-semibold text-blue-600">
-                        {letterReference || (branchCode ? `${branchCode}-${nextNumber || '?'}/${currentYear}` : '')}
+                      {/* رمز الفرع ورقم الخطاب - مرجع الخطاب */}
+                      <div className="absolute top-[25px] left-[85px] w-32 text-right">
+                        <span className="font-medium text-sm">
+                          {letterReference || `${branchCode}-${nextNumber}/${currentYear}`}
+                        </span>
                       </div>
-                      
-                      {/* رقم الخطاب */}
-                      <input
-                        type="text"
-                        value={content.number ?? nextNumber ?? ''}
-                        readOnly
-                        className="absolute top-[25px] left-[85px] w-10 p-1 text-sm font-semibold bg-transparent text-center focus:outline-none"
-                      />
                       
                       {/* تاريخ الخطاب */}
                       <input
@@ -1100,7 +1107,7 @@ export function LetterEditor() {
                         />
                       )}
                       
-                      {/* رمز QR - عرضه فقط في وضع المعاينة أو إذا تم تفعيله يدوياً */}
+                      {/* رمز QR - عرضه فقط في وضع المعاينة أو إذا تم تفعيله يدويًا */}
                       {(previewMode || showQRInEditor) && (
                         <div className="absolute bottom-[40px] right-[40px] flex flex-col items-center gap-1">
                           {content.verification_url ? (
@@ -1169,13 +1176,13 @@ export function LetterEditor() {
                 <button
                   onClick={() => {
                     if (content.body) {
-                      setActiveStep(4)
+                      setActiveStep(4);
                     } else {
                       toast({
                         title: 'محتوى الخطاب مطلوب',
                         description: 'يجب كتابة محتوى الخطاب قبل المتابعة',
                         type: 'warning'
-                      })
+                      });
                     }
                   }}
                   className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg"
@@ -1196,7 +1203,7 @@ export function LetterEditor() {
                   onClick={() => {
                     if ((activeStep === 1 && content.subject && content.to) || 
                         (activeStep === 2 && templateId)) {
-                      setActiveStep(prev => Math.min(4, prev + 1))
+                      setActiveStep(prev => Math.min(4, prev + 1));
                     } else {
                       toast({
                         title: 'بيانات مطلوبة',
@@ -1204,7 +1211,7 @@ export function LetterEditor() {
                           ? 'يجب إدخال موضوع الخطاب والجهة المرسل إليها' 
                           : 'يجب اختيار قالب للخطاب',
                         type: 'warning'
-                      })
+                      });
                     }
                   }}
                   className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg"
@@ -1217,5 +1224,5 @@ export function LetterEditor() {
         )}
       </div>
     </div>
-  )
+  );
 }
