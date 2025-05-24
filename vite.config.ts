@@ -6,7 +6,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [
     react(),
-    splitVendorChunkPlugin() // تحسين: فصل حزم المكتبات الخارجية
+    splitVendorChunkPlugin()
   ],
   optimizeDeps: {
     include: [
@@ -19,50 +19,62 @@ export default defineConfig({
       'html2canvas',
       'jspdf'
     ],
-    exclude: [], // تجنب استثناء أي تبعيات لتحسين الأداء
+    exclude: [],
   },
   build: {
-    sourcemap: false, // تحسين: تعطيل source maps في الإنتاج لتقليل الحجم
-    minify: 'terser', // تحسين: استخدام terser للحصول على ضغط أفضل
+    sourcemap: false,
+    minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // تحسين: إزالة console.log في الإنتاج
+        drop_console: true,
       },
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          tinymce: ['@tinymce/tinymce-react', 'tinymce'],
-          react: ['react', 'react-dom'],
-          utils: ['zustand', '@tanstack/react-query'],
-          pdf: ['html2canvas', 'jspdf', 'pdf-lib'],
-          ui: ['framer-motion', 'lucide-react'],
-          supabase: ['@supabase/supabase-js']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@tinymce') || id.includes('tinymce')) {
+              return 'tinymce';
+            }
+            if (id.includes('react')) {
+              return 'react';
+            }
+            if (id.includes('zustand') || id.includes('@tanstack/react-query')) {
+              return 'utils';
+            }
+            if (id.includes('html2canvas') || id.includes('jspdf') || id.includes('pdf-lib')) {
+              return 'pdf';
+            }
+            if (id.includes('framer-motion') || id.includes('lucide-react')) {
+              return 'ui';
+            }
+            if (id.includes('@supabase/supabase-js')) {
+              return 'supabase';
+            }
+            return 'vendor';
+          }
         }
       }
     },
-    chunkSizeWarningLimit: 1000, // تحسين: زيادة حد التحذير لحجم الحزم
+    chunkSizeWarningLimit: 1000,
   },
   resolve: {
-    dedupe: ['react', 'react-dom'], // تحسين: تفادي وجود نسخ متعددة من React
+    dedupe: ['react', 'react-dom'],
     alias: {
       '@': path.resolve(__dirname, './src'),
       'tinymce/plugins': path.resolve(__dirname, 'node_modules/tinymce/plugins')
     }
   },
   server: {
-    // تكوين الخادم المحلي
     hmr: {
-      overlay: true, // تفعيل واجهة أخطاء التطبيق الساخن
+      overlay: true,
     },
   },
   css: {
-    // تحسين الـ CSS
-    devSourcemap: true, // تفعيل source maps للـ CSS في وضع التطوير
+    devSourcemap: true,
   },
   preview: {
-    // إعدادات المعاينة
     port: 5000,
-    strictPort: false, // السماح بتغيير المنفذ إذا كان المنفذ 5000 مشغولاً
+    strictPort: false,
   },
 })
