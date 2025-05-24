@@ -1,3 +1,14 @@
+# Dependencias
+node_modules
+.pnp
+.pnp.js
+
+# Compilaciones y distribución
+dist
+build
+dist-ssr
+*.local
+
 # Logs
 logs
 *.log
@@ -7,27 +18,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
-node_modules
-.pnp
-.pnp.js
-
-# Testing
-coverage
-*.lcov
-.nyc_output
-
-# Build
-dist
-dist-ssr
-*.local
-build
-
-# Editor directories and files
+# Archivos del editor y sistema
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
-!.vscode/launch.json
 .idea
 .DS_Store
 *.suo
@@ -36,25 +29,13 @@ build
 *.sln
 *.sw?
 
-# Environment variables
+# Configuración de entorno
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.development
-.env.production
+.env.*
 !.env.example
 
-# Supabase
-supabase/.branches
-supabase/.temp
-supabase/migrations_archive
-.supabase
+# Archivos de Bolt
+.bolt/supabase_discarded_migrations/
 
-# Cache
-.cache
-
-# Temporary files
-.tmp
-.temp
+# Archivos de migración archivados
+supabase/migrations_archive/

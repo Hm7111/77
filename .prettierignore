@@ -1,0 +1,18 @@
+# Dependencias
+node_modules
+.pnp
+.pnp.js
+
+# Compilaciones y distribución
+dist
+build
+dist-ssr
+*.local
+
+# Archivos de migración
+supabase/migrations/
+supabase/migrations_archive/
+.bolt/supabase_discarded_migrations/
+
+# Archivos generados
+coverage

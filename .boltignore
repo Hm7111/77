@@ -1,0 +1,12 @@
+# Archivos para ignorar en Bolt
+supabase/migrations_archive/
+supabase/migrations/*.sql
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.git/
+.github/
+*.log
+.DS_Store
