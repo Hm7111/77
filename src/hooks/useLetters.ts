@@ -16,7 +16,7 @@ export function useLetters() {
   const queryClient = useQueryClient()
   const [isOffline, setIsOffline] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
-  const { user } = useAuth()
+  const { user, dbUser } = useAuth()
   const { toast } = useToast()
   const [loadingState, setLoadingState] = useState<Record<string, boolean>>({})
 
@@ -146,6 +146,9 @@ export function useLetters() {
         throw new Error('يجب اختيار قالب للخطاب')
       }
       
+      // تحسين: استخدام رمز الفرع من بيانات المستخدم
+      const branchCode = dbUser?.branch?.code || 'GEN';
+      
       // تحسين: استخدام تنسيق معاملة واحدة
       const { data, error } = await supabase
         .from('letters')
@@ -159,7 +162,8 @@ export function useLetters() {
           local_id: letter.local_id,
           sync_status: 'synced',
           creator_name: letter.creator_name,
-          verification_url: letter.verification_url
+          verification_url: letter.verification_url,
+          branch_code: branchCode // إضافة رمز الفرع من بيانات المستخدم
         })
         .select('id, number, year, content, status, created_at, letter_templates(id, name, image_url)') // تحسين: تحديد الحقول المطلوبة فقط
         .single()

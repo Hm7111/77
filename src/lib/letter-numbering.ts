@@ -23,14 +23,20 @@ export async function getBranchCode(): Promise<string> {
     // الحصول على بيانات الفرع للمستخدم
     const { data, error } = await supabase
       .from('users')
-      .select('branches:branch_id(code)')
+      .select('branch_id, branches:branch_id(code, name)')
       .eq('id', user.user.id)
       .single();
     
     if (error) throw error;
     
     // استخدام رمز الفرع أو قيمة افتراضية
-    return data.branches?.code || 'GEN'; // GEN = عام (General)
+    if (data.branches && data.branches.code) {
+      console.log('Found branch code:', data.branches.code);
+      return data.branches.code;
+    } else {
+      console.log('No branch found, using default GEN');
+      return 'GEN'; // GEN = عام (General)
+    }
   } catch (error) {
     console.error('Error getting branch code:', error);
     return 'GEN'; // قيمة افتراضية في حالة الخطأ

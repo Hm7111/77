@@ -55,10 +55,27 @@ export function LetterDialog({ isOpen, onClose, onSuccess }: Props) {
 
   async function loadNextNumber() {
     try {
+      // الحصول على رمز الفرع للمستخدم الحالي
+      let branchCode = 'GEN'; // رمز افتراضي
+      
+      if (dbUser?.branch_id) {
+        const { data: branchData, error: branchError } = await supabase
+          .from('branches')
+          .select('code')
+          .eq('id', dbUser.branch_id)
+          .single();
+        
+        if (!branchError && branchData) {
+          branchCode = branchData.code;
+          console.log('Using branch code:', branchCode);
+        }
+      }
+      
       const { data, error } = await supabase
         .from('letters')
         .select('number')
         .eq('year', currentYear)
+        .eq('branch_code', branchCode)
         .order('number', { ascending: false })
         .limit(1)
 
@@ -76,6 +93,21 @@ export function LetterDialog({ isOpen, onClose, onSuccess }: Props) {
     e.preventDefault()
     setIsLoading(true)
     try {
+      // الحصول على رمز الفرع للمستخدم الحالي
+      let branchCode = 'GEN'; // رمز افتراضي
+      
+      if (dbUser?.branch_id) {
+        const { data: branchData, error: branchError } = await supabase
+          .from('branches')
+          .select('code')
+          .eq('id', dbUser.branch_id)
+          .single();
+        
+        if (!branchError && branchData) {
+          branchCode = branchData.code;
+        }
+      }
+      
       const { error } = await supabase
         .from('letters')
         .insert({
@@ -84,7 +116,8 @@ export function LetterDialog({ isOpen, onClose, onSuccess }: Props) {
           status: 'draft',
           content,
           number: nextNumber,
-          year: currentYear
+          year: currentYear,
+          branch_code: branchCode
         })
 
       if (error) throw error

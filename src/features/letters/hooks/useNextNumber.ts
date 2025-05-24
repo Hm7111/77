@@ -26,9 +26,9 @@ export function useNextNumber() {
     setError(null);
     
     try {
-      // أولاً: الحصول على رمز الفرع للمستخدم الحالي
-      let code = 'GEN'; // رمز افتراضي (عام)
-      
+      // الحصول على رمز الفرع للمستخدم الحالي
+      let code = 'GEN'; // رمز افتراضي
+      // استخدام رمز الفرع من بيانات المستخدم مباشرة
       if (dbUser?.branch_id) {
         const { data: branchData, error: branchError } = await supabase
           .from('branches')
@@ -36,10 +36,11 @@ export function useNextNumber() {
           .eq('id', dbUser.branch_id)
           .single();
         
-        if (branchError) {
-          console.warn('Error fetching branch code:', branchError);
-        } else if (branchData) {
+        if (branchError) throw branchError;
+        
+        if (branchData && branchData.code) {
           code = branchData.code;
+          console.log('Using branch code from user profile:', code);
         }
       }
       
