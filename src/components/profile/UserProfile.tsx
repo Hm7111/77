@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { useToast } from '../../hooks/useToast';
-import { User, Eye, EyeOff, Save, UserCircle } from 'lucide-react';
+import { User, Eye, EyeOff, Save, UserCircle, Building } from 'lucide-react';
 import { BranchSelector } from '../branches/BranchSelector';
 import { SignatureUploader } from './SignatureUploader';
 
