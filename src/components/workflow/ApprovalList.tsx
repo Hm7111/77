@@ -415,7 +415,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
           <div className="overflow-x-auto">
             <div className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
               <div className="bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-800 grid grid-cols-5 py-4">
-                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 cursor-pointer select-none"
+                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1 cursor-pointer select-none"
                   onClick={() => {
                     if (sortField === 'subject') {
                       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -430,10 +430,10 @@ export function ApprovalList({ role }: ApprovalListProps) {
                     sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />
                   )}
                 </div>
-                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 select-none">
+                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 select-none border-r dark:border-gray-700">
                   <span className="font-bold text-primary">{role === 'approver' ? 'المرسل' : 'المعتمد'}</span>
                 </div>
-                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 cursor-pointer select-none"
+                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1 cursor-pointer select-none border-r dark:border-gray-700"
                   onClick={() => {
                     if (sortField === 'created_at') {
                       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -448,15 +448,15 @@ export function ApprovalList({ role }: ApprovalListProps) {
                     sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />
                   )}
                 </div>
-                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 select-none">
+                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 select-none border-r dark:border-gray-700">
                   <span className="font-bold text-primary">الحالة</span>
                 </div>
-                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 select-none">
+                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 select-none border-r dark:border-gray-700">
                   <span className="font-bold text-primary">الإجراءات</span>
                 </div>
               </div>
               
-              <div className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
+              <div className="bg-white dark:bg-gray-900">
                 {filteredApprovals.map((approval) => {
                   // تحديد البيانات بناءً على نوع القائمة
                   const letterSubject = role === 'approver' 
@@ -493,7 +493,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
                   
                   return (
                     <div key={approval.id} className="grid grid-cols-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors border-b dark:border-gray-800 last:border-b-0">
-                      <div className="px-4 flex items-center">
+                      <div className="px-4 flex items-center border-r dark:border-gray-700">
                         <div className="flex items-start gap-3 w-full">
                           <div className="flex-shrink-0">
                             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shadow-sm">
@@ -511,7 +511,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
                         </div>
                       </div>
                       
-                      <div className="px-4 flex items-center justify-center">
+                      <div className="px-4 flex items-center justify-center border-r dark:border-gray-700">
                         <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
                           <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 shadow-sm">
                             <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
@@ -520,7 +520,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
                         </div>
                       </div>
                       
-                      <div className="px-4 flex items-center justify-center">
+                      <div className="px-4 flex items-center justify-center border-r dark:border-gray-700">
                         <div className="flex flex-col bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
                           <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 mb-0.5">
                             <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
@@ -532,14 +532,14 @@ export function ApprovalList({ role }: ApprovalListProps) {
                         </div>
                       </div>
                       
-                      <div className="px-4 flex items-center justify-center">
+                      <div className="px-4 flex items-center justify-center border-r dark:border-gray-700">
                         <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
                           {getStatusIcon(approval.status)}
                           <WorkflowStatus status={approval.status} />
                         </div>
                       </div>
                       
-                      <div className="px-4 flex items-center justify-center gap-2">
+                      <div className="px-4 flex items-center justify-center gap-2 border-r dark:border-gray-700">
                         <button
                           onClick={() => handleViewLetter(letterId, requestId)}
                           className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg flex items-center gap-1.5 transition-colors"
