@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Save, FileText, Settings, Eye, Download, Printer, CheckCircle, History, Copy, Share2, Sliders, BookTemplate as FileTemplate, ListPlus, RefreshCw } from 'lucide-react'
+import { ArrowRight, Save, FileText, Clock, Calendar, PlusCircle, Settings, 
+  Eye, Download, Printer, CheckCircle, Share2, Copy, Sliders,
+  BookTemplate as FileTemplate, ListPlus, RefreshCw, QrCode
+} from 'lucide-react'
 import QRCode from 'qrcode.react'
 import moment from 'moment-hijri'
 import { useLetters } from '../../hooks/useLetters'
@@ -12,6 +15,7 @@ import { RichTextEditor } from './RichTextEditor'
 import { useToast } from '../../hooks/useToast'
 import { TextTemplateSelector } from './TextTemplateSelector'
 import { EditorSelector } from './EditorSelector'
+import { useNextNumber } from '../../features/letters/hooks/useNextNumber'
 
 const MONTHS_AR = [
   'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني',
@@ -36,8 +40,14 @@ export function LetterEditor() {
     to: ''
   })
   const { dbUser, user } = useAuth()
-  const [currentYear] = useState(new Date().getFullYear())
-  const [nextNumber, setNextNumber] = useState<number | null>(null)
+  const { 
+    loadNextNumber, 
+    nextNumber, 
+    currentYear,
+    branchCode, 
+    letterReference 
+  } = useNextNumber()
+  
   const [previewMode, setPreviewMode] = useState(false)
   const [showGuides, setShowGuides] = useState(false)
   const [showEditorControls, setShowEditorControls] = useState(true)
@@ -92,7 +102,7 @@ export function LetterEditor() {
 
   useEffect(() => {
     if (templateId) {
-      loadNextNumber()
+      loadNextNumber(templateId)
       // Load selected template details
       loadSelectedTemplate()
     }
@@ -157,43 +167,26 @@ export function LetterEditor() {
     }
   }
 
-  async function loadNextNumber() {
-    try {
-      const { data, error } = await supabase
-        .from('letters')
-        .select('number')
-        .eq('year', currentYear)
-        .order('number', { ascending: false })
-        .limit(1)
-
-      if (error) throw error
-
-      const nextNum = data && data.length > 0 ? data[0].number + 1 : 1
-      setNextNumber(nextNum)
-      setContent(prev => ({ ...prev, number: String(nextNum) }))
-    } catch (error) {
-      console.error('Error loading next number:', error)
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تحميل رقم الخطاب التالي',
-        type: 'warning'
-      })
-    }
-  }
-
   async function handleAutosave() {
     if (!dbUser?.id || !templateId || !content.body) return
     
     try {
+      // استخدام الترقيم المركب للخطاب
+      const result = await loadNextNumber(templateId);
+      
+      if (!result) return;
+      
       await saveDraft({
         user_id: dbUser.id,
         template_id: templateId,
         content,
         status: 'draft',
-        number: nextNumber,
+        number: result.number,
         year: currentYear,
+        branch_code: result.branchCode, // إضافة رمز الفرع
         creator_name: dbUser?.full_name || user?.email,
-        sync_status: 'pending'
+        sync_status: 'pending',
+        letter_reference: result.reference // إضافة مرجع الخطاب المركب
       })
       
       console.log('تم الحفظ التلقائي للمسودة')
@@ -220,6 +213,13 @@ export function LetterEditor() {
         throw new Error('يجب إدخال محتوى الخطاب')
       }
 
+      // الحصول على معلومات الترقيم
+      const result = await loadNextNumber(templateId);
+      
+      if (!result) {
+        throw new Error('فشل في الحصول على رقم الخطاب التالي');
+      }
+
       // Store template snapshot data in content to ensure it's preserved
       const templateSnapshot = selectedTemplate ? {
         id: selectedTemplate.id,
@@ -236,14 +236,17 @@ export function LetterEditor() {
         template_snapshot: templateSnapshot,
         content: {
           ...content,
-          verification_url: verificationUrl
+          verification_url: verificationUrl,
+          reference: result.reference // إضافة المرجع المركب للخطاب
         },
         status: 'completed',
-        number: nextNumber,
+        number: result.number,
         year: currentYear,
+        branch_code: result.branchCode, // إضافة رمز الفرع
         creator_name: dbUser?.full_name || user?.email,
         sync_status: 'pending',
-        verification_url: verificationUrl
+        verification_url: verificationUrl,
+        letter_reference: result.reference // إضافة مرجع الخطاب المركب
       })
 
       await createLetter(draft)
@@ -251,7 +254,7 @@ export function LetterEditor() {
       // إظهار رسالة النجاح
       toast({
         title: 'تم الحفظ',
-        description: 'تم حفظ الخطاب بنجاح',
+        description: `تم حفظ الخطاب ${result.reference} بنجاح`,
         type: 'success'
       })
       
@@ -297,6 +300,13 @@ export function LetterEditor() {
         type: 'info'
       })
       
+      // الحصول على معلومات الترقيم
+      const result = await loadNextNumber(templateId);
+      
+      if (!result) {
+        throw new Error('فشل في الحصول على معلومات الترقيم');
+      }
+      
       // Create a temporary letter object for print purposes
       const tempLetter = {
         id: '',
@@ -310,10 +320,15 @@ export function LetterEditor() {
           zones: selectedTemplate.zones,
           version: selectedTemplate.version
         } : undefined,
-        content,
+        content: {
+          ...content,
+          reference: result.reference // إضافة مرجع الخطاب
+        },
         status: 'draft',
-        number: nextNumber || 0,
+        number: result.number,
         year: currentYear,
+        branch_code: result.branchCode, // إضافة رمز الفرع
+        letter_reference: result.reference, // إضافة مرجع الخطاب
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         letter_templates: selectedTemplate
@@ -341,6 +356,13 @@ export function LetterEditor() {
         type: 'info'
       })
       
+      // الحصول على معلومات الترقيم
+      const result = await loadNextNumber(templateId);
+      
+      if (!result) {
+        throw new Error('فشل في الحصول على معلومات الترقيم');
+      }
+      
       // Create a temporary letter object for export purposes
       const tempLetter = {
         id: '',
@@ -354,10 +376,15 @@ export function LetterEditor() {
           zones: selectedTemplate.zones,
           version: selectedTemplate.version
         } : undefined,
-        content,
+        content: {
+          ...content,
+          reference: result.reference // إضافة مرجع الخطاب
+        },
         status: 'draft',
-        number: nextNumber || 0,
+        number: result.number,
         year: currentYear,
+        branch_code: result.branchCode, // إضافة رمز الفرع
+        letter_reference: result.reference, // إضافة مرجع الخطاب
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         letter_templates: selectedTemplate
@@ -503,7 +530,7 @@ export function LetterEditor() {
             <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
             <h2 className="text-xl font-bold mb-2">تم حفظ الخطاب بنجاح</h2>
             <p className="text-gray-600 mb-6 text-center">
-              تم حفظ الخطاب بنجاح وإضافته إلى سجل الخطابات
+              تم حفظ الخطاب {letterReference || ''} بنجاح وإضافته إلى سجل الخطابات
             </p>
             <div className="flex gap-4">
               <button
@@ -711,7 +738,7 @@ export function LetterEditor() {
                   } else {
                     toast({
                       title: 'حقول مطلوبة',
-                      description: 'يجب إدخال الموضوع والجهة المرسل إليها',
+                      description: 'يجب إدخال موضوع الخطاب والجهة المرسل إليها',
                       type: 'error'
                     })
                   }
@@ -879,18 +906,19 @@ export function LetterEditor() {
                   }`}
                   title={showQRInEditor ? 'إخفاء رمز QR' : 'إظهار رمز QR'}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <rect x="7" y="7" width="3" height="3"/>
-                    <rect x="14" y="7" width="3" height="3"/>
-                    <rect x="7" y="14" width="3" height="3"/>
-                    <rect x="14" y="14" width="3" height="3"/>
-                  </svg>
+                  <QrCode className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">رمز QR</span>
                 </button>
               </div>
               
               <div className="flex items-center gap-1 mr-auto">
+                {/* عرض مرجع الخطاب المركب */}
+                {branchCode && (
+                  <div className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded-lg text-sm font-mono mr-2">
+                    {branchCode}-{nextNumber}/{currentYear}
+                  </div>
+                )}
+                
                 <span className="text-xs text-gray-500">حجم الخط:</span>
                 <select
                   value={editorConfig.fontSize}
@@ -986,10 +1014,15 @@ export function LetterEditor() {
                         </>
                       )}
                       
+                      {/* مرجع الخطاب المركب */}
+                      <div className="absolute top-[5px] right-[35px] text-sm font-semibold text-blue-600">
+                        {letterReference || (branchCode ? `${branchCode}-${nextNumber || '?'}/${currentYear}` : '')}
+                      </div>
+                      
                       {/* رقم الخطاب */}
                       <input
                         type="text"
-                        value={content.number ?? ''}
+                        value={content.number ?? nextNumber ?? ''}
                         readOnly
                         className="absolute top-[25px] left-[85px] w-10 p-1 text-sm font-semibold bg-transparent text-center focus:outline-none"
                       />
@@ -1067,7 +1100,7 @@ export function LetterEditor() {
                         />
                       )}
                       
-                      {/* رمز QR - عرضه فقط في وضع المعاينة أو إذا تم تفعيله يدويًا */}
+                      {/* رمز QR - عرضه فقط في وضع المعاينة أو إذا تم تفعيله يدوياً */}
                       {(previewMode || showQRInEditor) && (
                         <div className="absolute bottom-[40px] right-[40px] flex flex-col items-center gap-1">
                           {content.verification_url ? (

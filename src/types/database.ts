@@ -140,6 +140,8 @@ export interface Letter {
   status: 'draft' | 'completed'
   number: number
   year: number
+  branch_code?: string // رمز الفرع
+  letter_reference?: string // مرجع الخطاب المركب
   last_saved: string
   local_id: string | null
   sync_status: 'pending' | 'synced' | 'failed'

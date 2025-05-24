@@ -13,7 +13,8 @@ import {
   SortAsc, 
   SortDesc,
   FileText,
-  Calendar
+  Calendar,
+  Building
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -39,22 +40,48 @@ export function LettersList({}: LetterListProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [previewLetter, setPreviewLetter] = useState<Letter | null>(null);
   const [selectedLetterId, setSelectedLetterId] = useState<string | null>(null);
+  const [branchFilter, setBranchFilter] = useState<string | null>(null);
   
   const { data: letters = [], isLoading, refetch } = useQuery({
-    queryKey: ['letters', dbUser?.id],
+    queryKey: ['letters', dbUser?.id, branchFilter],
     queryFn: async () => {
       if (!dbUser?.id) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('letters')
-        .select('*, letter_templates(*)')
-        .eq('user_id', dbUser.id)
-        .order(sortField, { ascending: sortDirection === 'asc' });
+        .select('*, letter_templates(*)');
+      
+      // إذا لم يكن المستخدم مديراً، قم بعرض خطاباته فقط
+      if (dbUser.role !== 'admin') {
+        query = query.eq('user_id', dbUser.id);
+      } else if (branchFilter) {
+        // إذا كان المستخدم مديراً وتم تحديد فرع، اعرض خطابات ذلك الفرع
+        query = query.eq('branch_code', branchFilter);
+      }
+      
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data;
     },
     enabled: !!dbUser?.id
+  });
+
+  // استعلام للحصول على رموز الفروع للمدراء
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches-codes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('branches')
+        .select('id, name, code')
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: dbUser?.role === 'admin'
   });
 
   // تحسين: استخدام useMemo لفلترة الخطابات
@@ -69,7 +96,9 @@ export function LettersList({}: LetterListProps) {
         return (
           letter.content.subject?.toLowerCase().includes(searchLower) ||
           letter.content.to?.toLowerCase().includes(searchLower) ||
-          letter.number.toString().includes(searchLower)
+          letter.number.toString().includes(searchLower) ||
+          (letter.letter_reference && letter.letter_reference.toLowerCase().includes(searchLower)) ||
+          (letter.branch_code && letter.branch_code.toLowerCase().includes(searchLower))
         );
       }
       
@@ -250,6 +279,24 @@ export function LettersList({}: LetterListProps) {
                   </div>
                 </div>
                 
+                {dbUser?.role === 'admin' && branches.length > 0 && (
+                  <div className="mb-2">
+                    <h4 className="text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">الفرع</h4>
+                    <select
+                      value={branchFilter || ''}
+                      onChange={(e) => setBranchFilter(e.target.value || null)}
+                      className="w-full text-sm p-2 border dark:border-gray-700 rounded"
+                    >
+                      <option value="">جميع الفروع</option>
+                      {branches.map(branch => (
+                        <option key={branch.id} value={branch.code}>
+                          {branch.name} ({branch.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                
                 <div className="mb-2">
                   <h4 className="text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">الترتيب</h4>
                   <select 
@@ -319,11 +366,11 @@ export function LettersList({}: LetterListProps) {
                 }
               }}
             >
-              <span>رقم الخطاب</span>
+              <span>المرجع</span>
               {sortField === 'number' && (sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />)}
             </div>
 
-            <div className="px-4 text-center font-medium text-primary border-r dark:border-gray-700">
+            <div className="px-4 text-center font-medium text-primary border-r dark:border-gray-700 col-span-2">
               الموضوع
             </div>
 
@@ -332,25 +379,11 @@ export function LettersList({}: LetterListProps) {
             </div>
 
             <div className="px-4 text-center font-medium text-primary border-r dark:border-gray-700">
-              القالب
+              الفرع
             </div>
 
             <div className="px-4 text-center font-medium text-primary border-r dark:border-gray-700">
               الحالة
-            </div>
-
-            <div className="px-4 text-center font-medium text-primary flex items-center justify-center gap-1 cursor-pointer border-r dark:border-gray-700"
-              onClick={() => {
-                if (sortField === 'created_at') {
-                  setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-                } else {
-                  setSortField('created_at');
-                  setSortDirection('desc');
-                }
-              }}
-            >
-              <span>التاريخ</span>
-              {sortField === 'created_at' && (sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />)}
             </div>
 
             <div className="px-4 text-center font-medium text-primary border-r dark:border-gray-700">
@@ -363,33 +396,29 @@ export function LettersList({}: LetterListProps) {
             {filteredLetters.map((letter) => (
               <div key={letter.id} className="grid grid-cols-7 hover:bg-gray-50 dark:hover:bg-gray-800/50 border-b dark:border-gray-700 transition-colors">
                 <div className="px-4 py-4 flex items-center justify-center border-r dark:border-gray-700">
-                  <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg font-mono text-center">
-                    {letter.number}/{letter.year}
+                  <div className="bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg text-blue-800 dark:text-blue-300 text-sm font-mono text-center">
+                    {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
                   </div>
                 </div>
 
-                <div className="px-4 py-4 border-r dark:border-gray-700">
+                <div className="px-4 py-4 border-r dark:border-gray-700 col-span-2">
                   <div className="truncate max-w-[200px]" title={letter.content.subject}>
                     {letter.content.subject || '<بلا موضوع>'}
                   </div>
                 </div>
 
                 <div className="px-4 py-4 border-r dark:border-gray-700">
-                  <div className="truncate max-w-[200px]" title={letter.content.to}>
+                  <div className="truncate max-w-[150px]" title={letter.content.to}>
                     {letter.content.to || '<بلا جهة>'}
                   </div>
                 </div>
 
                 <div className="px-4 py-4 border-r dark:border-gray-700">
-                  <div className="truncate flex items-center gap-1.5">
-                    {letter.letter_templates?.image_url ? (
-                      <div className="w-6 h-6 rounded bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
-                        <img src={letter.letter_templates.image_url} className="w-full h-full object-cover" alt="" />
-                      </div>
-                    ) : (
-                      <FileText className="h-4 w-4 text-gray-400" />
-                    )}
-                    <span>{letter.letter_templates?.name ?? 'غير محدد'}</span>
+                  <div className="flex items-center justify-center">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg text-xs">
+                      <Building className="h-3 w-3 text-gray-500" />
+                      {letter.branch_code || 'GEN'}
+                    </span>
                   </div>
                 </div>
 
@@ -403,15 +432,6 @@ export function LettersList({}: LetterListProps) {
                   >
                     {letter.status === 'completed' ? 'مكتمل' : 'مسودة'}
                   </span>
-                </div>
-
-                <div className="px-4 py-4 border-r dark:border-gray-700 flex items-center">
-                  <div className="flex flex-col items-center w-full">
-                    <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg">
-                      <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                      <span>{new Date(letter.created_at).toLocaleDateString('ar-SA')}</span>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="px-4 py-4 flex items-center justify-center">

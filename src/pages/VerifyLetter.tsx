@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { CheckCircle, AlertCircle } from 'lucide-react'
+import { CheckCircle, AlertCircle, Building } from 'lucide-react'
 
 export function VerifyLetter() {
   const { code } = useParams()
@@ -80,11 +80,21 @@ export function VerifyLetter() {
 
               <div className="space-y-4 border-t pt-6">
                 <div>
-                  <div className="text-sm font-medium text-gray-500 mb-1">رقم الخطاب</div>
+                  <div className="text-sm font-medium text-gray-500 mb-1">مرجع الخطاب</div>
                   <div className="text-lg font-semibold text-gray-900 font-mono">
-                    {letter.number}/{letter.year}
+                    {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
                   </div>
                 </div>
+
+                {letter.branch_code && (
+                  <div>
+                    <div className="text-sm font-medium text-gray-500 mb-1">الفرع</div>
+                    <div className="text-gray-900 flex items-center gap-2">
+                      <Building className="h-4 w-4 text-primary" />
+                      <span>{letter.branch_code}</span>
+                    </div>
+                  </div>
+                )}
 
                 {letter.creator_name && (
                   <div>

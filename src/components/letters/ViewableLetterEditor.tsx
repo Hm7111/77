@@ -108,6 +108,8 @@ export function ViewableLetterEditor() {
           status: 'completed',
           number: letterData.number,
           year: letterData.year,
+          branch_code: letterData.branch_code, // إضافة رمز الفرع
+          letter_reference: letterData.letter_reference, // إضافة مرجع الخطاب
           created_at: new Date().toISOString(), // Will be updated
           updated_at: new Date().toISOString(),
           letter_templates: {
@@ -190,7 +192,7 @@ export function ViewableLetterEditor() {
         // استخدام خاصية التقاط المكون مباشرة
         if (letterPreviewRef.current) {
           await exportToPDF(letter, {
-            filename: `خطاب-${letter.number || '0'}-${letter.year || new Date().getFullYear()}.pdf`,
+            filename: `${letter.letter_reference || `خطاب-${letter.number}-${letter.year}`}.pdf`,
             showProgress: (progress) => {
               // يمكن إضافة شريط تقدم هنا
             },
@@ -255,8 +257,8 @@ export function ViewableLetterEditor() {
     
     if (navigator.share) {
       navigator.share({
-        title: `خطاب ${letter.number}/${letter.year}`,
-        text: `مشاركة رابط التحقق من الخطاب رقم ${letter.number}/${letter.year}`,
+        title: `خطاب ${letter.letter_reference || `${letter.number}/${letter.year}`}`,
+        text: `مشاركة رابط التحقق من الخطاب رقم ${letter.letter_reference || `${letter.number}/${letter.year}`}`,
         url
       }).catch(err => {
         console.error('Error sharing:', err)
@@ -468,6 +470,11 @@ export function ViewableLetterEditor() {
               }}
             >
               <div className="absolute inset-0">
+                {/* مرجع الخطاب المركب */}
+                <div className="absolute top-[5px] right-[35px] text-sm font-semibold text-blue-600">
+                  {letter.letter_reference || `${letter.branch_code || 'GEN'}-${letter.number}/${letter.year}`}
+                </div>
+                
                 <div className="absolute top-[25px] left-[85px] w-10 p-1 text-sm font-semibold text-center">
                   {letter.number}
                 </div>
@@ -529,6 +536,12 @@ export function ViewableLetterEditor() {
             <ArrowRight className="h-5 w-5" />
           </button>
           <h1 className="text-2xl font-bold">معاينة الخطاب</h1>
+          
+          {/* عرض مرجع الخطاب المركب */}
+          <div className="mr-2 bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 rounded-lg text-sm font-mono">
+            {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+          </div>
+          
           {letter.workflow_status && (
             <WorkflowStatus 
               status={letter.workflow_status} 
@@ -686,8 +699,17 @@ export function ViewableLetterEditor() {
           <h3 className="text-lg font-semibold mb-4">تفاصيل الخطاب</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <div>
-              <p className="text-sm text-gray-500 mb-1">رقم الخطاب</p>
-              <p className="font-mono">{letter.number}/{letter.year}</p>
+              <p className="text-sm text-gray-500 mb-1">مرجع الخطاب</p>
+              <p className="font-mono">
+                {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-1">الفرع</p>
+              <p className="flex items-center gap-1.5">
+                <Building className="h-4 w-4 text-gray-500" />
+                <span>{letter.branch_code || 'عام'}</span>
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500 mb-1">تاريخ الإنشاء</p>
@@ -758,6 +780,11 @@ export function ViewableLetterEditor() {
             }}
           >
             <div className="absolute inset-0">
+              {/* مرجع الخطاب المركب */}
+              <div className="absolute top-[5px] right-[35px] text-sm font-semibold text-blue-600">
+                {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+              </div>
+            
               <div className="absolute top-[25px] left-[85px] w-10 p-1 text-sm font-semibold text-center">
                 {letter.number}
               </div>
