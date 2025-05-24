@@ -103,12 +103,12 @@ export function useFormValidation<T extends Record<string, any>>(
    * معالجة تغيير قيمة الحقل
    */
   const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }) => {
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       const { name, value, type } = e.target;
       const fieldName = name as keyof T;
       
       // معالجة خاصة لحقول الاختيار
-      const newValue = type === 'checkbox' && e instanceof Event
+      const newValue = type === 'checkbox'
         ? (e.target as HTMLInputElement).checked
         : value;
       
@@ -184,7 +184,7 @@ export function useFormValidation<T extends Record<string, any>>(
    * معالجة تقديم النموذج
    */
   const handleSubmit = useCallback(
-    (onSubmit: (values: T) => void | Promise<void>) => async (e: React.FormEvent) => {
+    (onSubmit: (values: T) => void) => async (e: React.FormEvent) => {
       e.preventDefault();
       setIsSubmitting(true);
       
@@ -203,11 +203,7 @@ export function useFormValidation<T extends Record<string, any>>(
       setTouched(allTouched);
       
       if (isValid) {
-        try {
-          await onSubmit(values);
-        } catch (error) {
-          console.error('Form submission error:', error);
-        }
+        onSubmit(values);
       }
       
       setIsSubmitting(false);
