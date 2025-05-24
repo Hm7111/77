@@ -6,14 +6,12 @@ import { Dashboard } from './pages/admin/Dashboard'
 import { Letters } from './pages/admin/Letters'
 import { Users } from './pages/admin/Users'
 import { Branches } from './pages/admin/Branches'
-import { EditLetter } from './pages/admin/EditLetter'
-import { ViewLetter } from './pages/admin/ViewLetter'
 import { Settings } from './pages/admin/Settings'
 import { VerifyLetter } from './pages/VerifyLetter'
 import { AuditLogs } from './pages/admin/AuditLogs'
 import { PermissionsManager } from './pages/admin/permissions'
-// استيراد صفحة إنشاء خطاب جديد من المسار الصحيح
-import { LetterEditor } from './features/letters/pages/LetterEditor'
+// استيراد صفحات الخطابات من المسار الصحيح
+import { LetterEditor, ViewLetter, EditLetter } from './features/letters/pages'
 import { AuthProvider } from './lib/auth'
 import { Approvals } from './pages/admin/Approvals' // إضافة صفحة الموافقات
 

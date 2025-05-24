@@ -50,18 +50,18 @@ export function useUserStats() {
           for (const branch of branches) {
             const { count: branchTotal } = await supabase
               .from('users')
-              .select('*', { count: 'exact' })
+              .select('*', { count: 'exact', head: true })
               .eq('branch_id', branch.id);
             
             const { count: branchActive } = await supabase
               .from('users')
-              .select('*', { count: 'exact' })
+              .select('*', { count: 'exact', head: true })
               .eq('branch_id', branch.id)
               .eq('is_active', true);
             
             const { count: branchAdmins } = await supabase
               .from('users')
-              .select('*', { count: 'exact' })
+              .select('*', { count: 'exact', head: true })
               .eq('branch_id', branch.id)
               .eq('role', 'admin');
             

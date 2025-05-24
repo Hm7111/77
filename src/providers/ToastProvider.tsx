@@ -55,7 +55,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
       if (duration !== Infinity) {
         setTimeout(() => {
           removeToast(id)
-        }, duration)
+        }, duration + 300) // إضافة وقت للانتقال
       }
     },
     [removeToast]

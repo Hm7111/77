@@ -23,15 +23,13 @@ export function useBranches() {
     try {
       let query = supabase
         .from('branches')
-        .select('*');
+        .select('*')
+        .order('name');
       
       // تطبيق الفلاتر
       if (filters?.is_active !== undefined) {
         query = query.eq('is_active', filters.is_active);
       }
-      
-      // ترتيب النتائج
-      query = query.order('name');
       
       const { data, error } = await query;
       

@@ -16,7 +16,11 @@ export interface BranchStats {
   total: number;
   active: number;
   userCount: number;
-  byCity?: Record<string, number>;
+  byBranch?: Record<string, {
+    total: number;
+    active: number;
+    admins: number;
+  }>;
 }
 
 export type { Branch };
