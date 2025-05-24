@@ -680,7 +680,7 @@ export function LetterEditor() {
             nextNumber={nextNumber}
             currentYear={currentYear}
             onSubmit={handleSubmit}
-            onSaveAsDraft={saveAsDraft}
+            onSaveAsDraft={handleAutosave}
             onPrintClick={handlePrint}
             onExportClick={handleExportPDF}
             isLoading={isLoading}
