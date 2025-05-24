@@ -10,7 +10,7 @@ const RichTextWrapper = lazy(() => import('./RichTextWrapper'));
 
 interface PreviewPaneProps {
   content: LetterContent;
-  onContentChange: (updater: (prevContent: LetterContent) => LetterContent) => void;
+  onContentChange: (updater: ((prevContent: LetterContent) => LetterContent) | Partial<LetterContent>) => void;
   selectedTemplate: Template;
   editorConfig: EditorConfig;
   editorState: EditorState;
@@ -125,7 +125,7 @@ export default function PreviewPane({
             <input
               type="text"
               value={content.date ?? ''}
-              onChange={(e) => onContentChange(prev => ({ ...prev, date: e.target.value }))}
+              onChange={(e) => onContentChange((prev) => ({ ...prev, date: e.target.value }))}
               onClick={onDateClick}
               readOnly={editorState.previewMode}
               className="absolute top-[60px] left-[40px] w-32 p-1 text-sm font-semibold bg-transparent text-center cursor-pointer focus:outline-none"
@@ -162,11 +162,11 @@ export default function PreviewPane({
                     <Suspense fallback={
                       <div className="h-full w-full flex items-center justify-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      </div>
+                      </div> 
                     }>
                       <RichTextWrapper
                         value={content.body ?? ''}
-                        onChange={(value) => onContentChange(prev => ({ ...prev, body: value }))}
+                        onChange={(value) => onContentChange((prev) => ({ ...prev, body: value }))}
                         style={{
                           fontSize: editorConfig.fontSize,
                           lineHeight: String(editorConfig.lineHeight),

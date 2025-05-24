@@ -2,6 +2,7 @@ import React from 'react';
 import { Save, Download, Printer } from 'lucide-react';
 import { LetterContent } from '../../types';
 import { Template } from '../../../../types/database';
+import { useToast } from '../../../../hooks/useToast';
 
 interface FinalStepProps {
   content: LetterContent;
@@ -31,6 +32,31 @@ export default function FinalStep({
   isLoading,
   prevStep
 }: FinalStepProps) {
+  const { toast } = useToast();
+  
+  // التحقق من وجود البيانات المطلوبة قبل الحفظ
+  const handleSaveClick = () => {
+    if (!content.subject?.trim() || !content.to?.trim()) {
+      toast({
+        title: 'حقول مطلوبة',
+        description: 'يجب إدخال موضوع الخطاب والجهة المرسل إليها',
+        type: 'error'
+      });
+      return;
+    }
+    
+    if (!content.body?.trim()) {
+      toast({
+        title: 'محتوى الخطاب مطلوب',
+        description: 'يجب إدخال محتوى الخطاب',
+        type: 'error'
+      });
+      return;
+    }
+    
+    onSubmit();
+  };
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold mb-4">المعاينة النهائية والحفظ</h3>
@@ -136,7 +162,7 @@ export default function FinalStep({
           </button>
           
           <button
-            onClick={onSubmit}
+            onClick={handleSaveClick}
             disabled={isLoading}
             className="px-4 py-2 bg-primary text-white rounded-lg flex items-center gap-2"
           >
