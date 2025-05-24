@@ -5,13 +5,14 @@ import { EditorConfig, EditorState, LetterContent } from '../../../types';
 import { Template } from '../../../../../types/database';
 import EditorControls from './EditorControls';
 import PreviewPane from './PreviewPane';
+import { useToast } from '../../../../../hooks/useToast';
 
 // تحميل المحرر بطريقة كسولة للأداء الأمثل
 const RichTextWrapper = lazy(() => import('./RichTextWrapper'));
 
 interface ContentStepProps {
   content: LetterContent;
-  onContentChange: (content: Partial<LetterContent>) => void;
+  onContentChange: (updater: ((prevContent: LetterContent) => LetterContent) | Partial<LetterContent>) => void;
   selectedTemplate: Template;
   editorConfig: EditorConfig;
   editorState: EditorState;
@@ -51,12 +52,20 @@ export default function ContentStep({
   onNextStep,
   onPrevStep,
   onManualSave,
-  onShowTemplateSelector
+  onShowTemplateSelector,
 }: ContentStepProps) {
+  const { toast } = useToast();
+  
   // معالجة زر "التالي"
   const handleNext = () => {
-    if (content.body) {
+    if (content.body?.trim()) {
       onNextStep();
+    } else {
+      toast({
+        title: 'محتوى الخطاب مطلوب',
+        description: 'يجب كتابة محتوى الخطاب قبل المتابعة',
+        type: 'warning'
+      });
     }
   };
 
@@ -83,7 +92,7 @@ export default function ContentStep({
                 </div>}>
                   <RichTextWrapper
                     value={content.body ?? ''}
-                    onChange={(value) => onContentChange({ body: value })}
+                    onChange={(value) => onContentChange((prev) => ({ ...prev, body: value }))}
                     style={{
                       fontSize: editorConfig.fontSize,
                       lineHeight: String(editorConfig.lineHeight),

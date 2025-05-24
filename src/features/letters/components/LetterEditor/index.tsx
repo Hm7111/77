@@ -29,6 +29,12 @@ const MONTHS_AR = [
   'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
 ];
 
+interface EditorConfig {
+  fontSize: string;
+  lineHeight: number;
+  fontFamily: string;
+}
+
 export function LetterEditor() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -54,7 +60,7 @@ export function LetterEditor() {
   const [isExporting, setIsExporting] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [autosaveEnabled, setAutosaveEnabled] = useState(true);
-  const [editorConfig, setEditorConfig] = useState({
+  const [editorConfig, setEditorConfig] = useState<EditorConfig>({
     fontSize: '16px',
     lineHeight: 1.5,
     fontFamily: 'Cairo',
@@ -184,7 +190,7 @@ export function LetterEditor() {
   }
 
   async function handleAutosave() {
-    if (!dbUser?.id || !templateId || !content.body) return;
+    if (!dbUser?.id || !templateId) return;
     
     try {
       await saveDraft({
@@ -206,50 +212,24 @@ export function LetterEditor() {
 
   async function handleSubmit(e?: React.FormEvent) {
     if (e) e.preventDefault();
-    
-    // Validate required fields first
-    if (!dbUser?.id || !templateId) {
-      toast({
-        title: 'خطأ',
-        description: 'يجب تسجيل الدخول واختيار قالب',
-        type: 'error'
-      });
-      return;
-    }
-
-    if (!content.subject?.trim()) {
-      toast({
-        title: 'حقل مطلوب',
-        description: 'يجب إدخال موضوع الخطاب',
-        type: 'error'
-      });
-      setActiveStep(1); // Return to basic info step
-      return;
-    }
-
-    if (!content.to?.trim()) {
-      toast({
-        title: 'حقل مطلوب',
-        description: 'يجب إدخال الجهة المرسل إليها',
-        type: 'error'
-      });
-      setActiveStep(1); // Return to basic info step
-      return;
-    }
-
-    if (!content.body?.trim()) {
-      toast({
-        title: 'حقل مطلوب',
-        description: 'يجب إدخال محتوى الخطاب',
-        type: 'error'
-      });
-      return;
-    }
-
     setIsLoading(true);
+    
     const verificationUrl = crypto.randomUUID();
 
     try {
+      if (!dbUser?.id || !templateId) {
+        throw new Error('يجب تسجيل الدخول واختيار قالب');
+      }
+
+      // تحقق من وجود الحقول المطلوبة
+      if (!content.subject?.trim() || !content.to?.trim()) {
+        throw new Error('يجب إدخال موضوع الخطاب والجهة المرسل إليها');
+      }
+
+      if (!content.body?.trim()) {
+        throw new Error('يجب إدخال محتوى الخطاب');
+      }
+
       // Store template snapshot data in content to ensure it's preserved
       const templateSnapshot = selectedTemplate ? {
         id: selectedTemplate.id,
@@ -318,7 +298,7 @@ export function LetterEditor() {
   }
 
   async function handlePrint() {
-    if (!templateId || !content.body) return;
+    if (!templateId) return;
     
     try {
       toast({
@@ -361,7 +341,7 @@ export function LetterEditor() {
   }
 
   async function handleExportPDF() {
-    if (!templateId || !content.body) return;
+    if (!templateId) return;
     
     setIsExporting(true);
     try {
@@ -496,11 +476,11 @@ export function LetterEditor() {
   // وظيفة للتعامل مع النماذج النصية
   function handleInsertTemplate(templateContent: string) {
     // إذا لم يكن هناك محتوى سابق، نضع النموذج مباشرة
-    if (!content.body) {
+    if (!content.body?.trim()) {
       setContent(prev => ({ ...prev, body: templateContent }));
     } else {
       // إذا كان هناك محتوى، نضيف النموذج إليه
-      setContent(prev => ({ ...prev, body: prev.body + '\n\n' + templateContent }));
+      setContent(prev => ({ ...prev, body: (prev.body || '') + '\n\n' + templateContent }));
     }
   }
 
@@ -515,7 +495,7 @@ export function LetterEditor() {
   // معالجة تغيير ارتفاع السطر
   const handleLineHeightChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = parseFloat(e.target.value);
-    setEditorConfig({...editorConfig, lineHeight: value});
+    setEditorConfig(prev => ({...prev, lineHeight: value}));
   };
 
   const today = moment();
@@ -645,7 +625,13 @@ export function LetterEditor() {
         {activeStep === 1 && (
           <BasicInfoStep
             content={content}
-            onContentChange={setContent}
+            onContentChange={(updater) => {
+              if (typeof updater === 'function') {
+                setContent(updater);
+              } else {
+                setContent(prev => ({ ...prev, ...updater }));
+              }
+            }}
             onNextStep={() => setActiveStep(2)}
             autosaveEnabled={autosaveEnabled}
             onToggleAutosave={() => setAutosaveEnabled(!autosaveEnabled)}
@@ -675,7 +661,13 @@ export function LetterEditor() {
         {activeStep === 3 && selectedTemplate && (
           <ContentStep
             content={content}
-            onContentChange={setContent}
+            onContentChange={(updater) => {
+              if (typeof updater === 'function') {
+                setContent(updater);
+              } else {
+                setContent(prev => ({ ...prev, ...updater }));
+              }
+            }}
             selectedTemplate={selectedTemplate}
             editorConfig={editorConfig}
             editorState={{
@@ -697,7 +689,10 @@ export function LetterEditor() {
             onNextStep={() => setActiveStep(4)}
             onPrevStep={() => setActiveStep(2)}
             onManualSave={handleAutosave}
-            onShowTemplateSelector={() => setEditorState(prev => ({ ...prev, showTemplateSelector: true }))}
+            onShowTemplateSelector={() => setEditorState(prev => ({ 
+              ...prev, 
+              showTemplateSelector: true 
+            }))}
           />
         )}
 
@@ -711,7 +706,7 @@ export function LetterEditor() {
             onSaveAsDraft={handleAutosave}
             onPrintClick={handlePrint}
             onExportClick={handleExportPDF}
-            isLoading={isLoading}
+            isLoading={isLoading || isExporting}
             prevStep={() => setActiveStep(3)}
           />
         )}
