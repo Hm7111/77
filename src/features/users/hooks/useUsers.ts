@@ -84,6 +84,17 @@ export function useUsers() {
     setError(null);
     
     try {
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', userData.email)
+        .single();
+
+      if (existingUser) {
+        throw new Error('البريد الإلكتروني مسجل مسبقاً');
+      }
+
       // إنشاء المستخدم في نظام المصادقة
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: userData.email,
@@ -97,7 +108,12 @@ export function useUsers() {
         }
       });
 
-      if (signUpError) throw signUpError;
+      if (signUpError) {
+        if (signUpError.message === 'User already registered') {
+          throw new Error('البريد الإلكتروني مسجل مسبقاً');
+        }
+        throw signUpError;
+      }
       
       if (!authData.user?.id) {
         throw new Error('لم يتم إنشاء المستخدم بشكل صحيح');

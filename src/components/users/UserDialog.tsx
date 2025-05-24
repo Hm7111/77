@@ -53,16 +53,23 @@ export function UserDialog({ user, isOpen, onClose, onSuccess }: Props) {
   })
 
   async function handleSubmit(userData: any) {
-    if (user?.id) {
-      // تحديث مستخدم موجود
-      await updateUser(user.id, userData)
-    } else {
-      // إنشاء مستخدم جديد
-      await createUser(userData)
+    try {
+      let success;
+      if (user?.id) {
+        // تحديث مستخدم موجود
+        success = await updateUser(user.id, userData)
+      } else {
+        // إنشاء مستخدم جديد
+        success = await createUser(userData)
+      }
+      
+      if (success) {
+        onSuccess()
+        onClose()
+      }
+    } catch (error) {
+      console.error('Error handling user submission:', error)
     }
-    
-    onSuccess()
-    onClose()
   }
 
   if (!isOpen) return null
