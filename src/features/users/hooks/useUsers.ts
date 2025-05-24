@@ -167,6 +167,8 @@ export function useUsers() {
     setError(null);
     
     try {
+      console.log('Updating user with data:', userData);
+      
       // تحديث بيانات المستخدم في قاعدة البيانات
       const { error: updateError } = await supabase
         .from('users')
@@ -195,6 +197,7 @@ export function useUsers() {
       
       // تحديث البيانات في واجهة المستخدم
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user', userId] });
       
       toast({
         title: 'تم التحديث',
