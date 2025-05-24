@@ -38,12 +38,12 @@ export async function exportToPDF(letter: Letter, options: ExportPDFOptions = {}
   const showProgress = options.showProgress || (() => {});
   
   // تعيين مهلة للإلغاء في حالة استغراق وقت طويل
-  let exportTimeout: number | null = setTimeout(() => {
+  const exportTimeout = setTimeout(() => {
     // إزالة عناصر التحميل
     const loadingElements = document.querySelectorAll('.pdf-export-loading');
     loadingElements.forEach(el => el.parentNode?.removeChild(el));
     throw new Error('استغرقت عملية التصدير وقتًا طويلًا جدًا');
-  }, 30000) as unknown as number; // 30 ثانية كحد أقصى
+  }, 30000); // 30 ثانية كحد أقصى
   
   // إظهار مؤشر التحميل
   const loadingElement = document.createElement('div');
@@ -99,7 +99,7 @@ export async function exportToPDF(letter: Letter, options: ExportPDFOptions = {}
     updateProgressUI('70%');
     
     // 5. إنشاء PDF باستخدام jsPDF مع تحسين الإعدادات
-    const jspdf = new jsPDF({
+    const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'pt',
       format: 'a4',
@@ -109,7 +109,7 @@ export async function exportToPDF(letter: Letter, options: ExportPDFOptions = {}
     });
     
     // 6. إضافة البيانات الوصفية
-    jspdf.setProperties({
+    pdf.setProperties({
       title: `${letter.letter_reference || `خطاب-${letter.number}-${letter.year}`}`,
       subject: letter.content.subject || 'خطاب',
       author: letter.creator_name || 'نظام الخطابات',
@@ -122,7 +122,7 @@ export async function exportToPDF(letter: Letter, options: ExportPDFOptions = {}
     const pageHeight = 842;
     
     // 8. إضافة صورة Canvas إلى PDF مع تحسين الضغط
-    jspdf.addImage({
+    pdf.addImage({
       imageData: canvas.toDataURL('image/jpeg', quality),
       format: 'JPEG', // تحسين: استخدام JPEG بدلاً من PNG للحصول على حجم أصغر
       x: 0,
@@ -136,7 +136,7 @@ export async function exportToPDF(letter: Letter, options: ExportPDFOptions = {}
     updateProgressUI('90%');
     
     // 9. حفظ ملف PDF
-    jspdf.save(filename);
+    pdf.save(filename);
     
     showProgress(1.0);
     updateProgressUI('100%');
@@ -145,11 +145,7 @@ export async function exportToPDF(letter: Letter, options: ExportPDFOptions = {}
     throw new Error('حدث خطأ أثناء تصدير ملف PDF');
   } finally {
     // تنظيف العناصر المؤقتة
-    if (exportTimeout) {
-      clearTimeout(exportTimeout);
-      exportTimeout = null;
-    }
-    
+    clearTimeout(exportTimeout);
     if (document.body.contains(loadingElement)) {
       document.body.removeChild(loadingElement);
     }
@@ -366,6 +362,24 @@ async function createLetterElement(letter: Letter, withTemplate: boolean): Promi
   // الحفاظ على المحاذاة الأصلية للنصوص
   bodyElement.innerHTML = letter.content.body || '';
   
+  // تحسين: معالجة محاذاة النصوص بشكل صحيح - يحسن الأداء
+  const paragraphs = bodyElement.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6');
+  paragraphs.forEach(p => {
+    // الحفاظ على المحاذاة الأصلية
+    if ((p as HTMLElement).style.textAlign) {
+      (p as HTMLElement).style.textAlign = (p as HTMLElement).style.textAlign;
+    }
+    
+    // تصحيح ارتفاع السطر
+    if (letter.content.lineHeight) {
+      (p as HTMLElement).style.lineHeight = letter.content.lineHeight.toString();
+    }
+    
+    // تصحيح المسافات
+    (p as HTMLElement).style.margin = '0';
+    (p as HTMLElement).style.padding = '0';
+  });
+  
   contentLayer.appendChild(bodyElement);
   
   // إضافة رمز QR إذا كان متاحاً
@@ -430,58 +444,42 @@ async function createLetterElement(letter: Letter, withTemplate: boolean): Promi
   
   // إضافة التوقيع إذا كان الخطاب معتمداً
   if (letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled) {
-    try {
-      // استعلام للحصول على رابط التوقيع
-      const { data: signatureData, error } = await supabase
-        .from('signatures')
-        .select('signature_url')
-        .eq('id', letter.signature_id)
-        .maybeSingle();
-      
-      if (!error && signatureData?.signature_url) {
-        const signatureContainer = document.createElement('div');
-        signatureContainer.style.cssText = `
-          position: absolute;
-          top: ${letterElements.signature.y}px;
-          left: ${letterElements.signature.x}px;
-          width: ${letterElements.signature.width}px;
-          height: ${letterElements.signature.height}px;
-          text-align: ${letterElements.signature.alignment};
-          z-index: 2;
-        `;
-        
-        // تحميل صورة التوقيع مسبقًا
-        await preloadImage(signatureData.signature_url);
-        
-        const signatureImg = document.createElement('img');
-        signatureImg.src = signatureData.signature_url;
-        signatureImg.alt = "توقيع المعتمد";
-        signatureImg.style.cssText = `
-          height: 80%;
-          max-width: 100%;
-          object-fit: contain;
-        `;
-        
-        signatureContainer.appendChild(signatureImg);
-        
-        // إضافة تسمية التوقيع
-        const signatureLabel = document.createElement('div');
-        signatureLabel.style.cssText = `
-          font-size: 10px;
-          color: #444;
-          margin-top: 4px;
-          font-family: 'Cairo', sans-serif;
-          font-weight: bold;
-        `;
-        signatureLabel.textContent = 'توقيع المعتمد';
-        signatureContainer.appendChild(signatureLabel);
-        
-        contentLayer.appendChild(signatureContainer);
-      }
-    } catch (err) {
-      console.warn('Error adding signature to PDF:', err);
-      // استمر بدون التوقيع إذا حدث خطأ
-    }
+    const signatureContainer = document.createElement('div');
+    signatureContainer.style.cssText = `
+      position: absolute;
+      top: ${letterElements.signature.y}px;
+      left: ${letterElements.signature.x}px;
+      width: ${letterElements.signature.width}px;
+      height: ${letterElements.signature.height}px;
+      text-align: ${letterElements.signature.alignment};
+      z-index: 2;
+    `;
+    
+    // هنا يجب استبدال هذا برابط التوقيع الفعلي
+    const signatureImg = document.createElement('img');
+    signatureImg.src = "/signature-placeholder.png";
+    signatureImg.alt = "توقيع المعتمد";
+    signatureImg.style.cssText = `
+      height: 80%;
+      max-width: 100%;
+      object-fit: contain;
+    `;
+    
+    signatureContainer.appendChild(signatureImg);
+    
+    // إضافة تسمية التوقيع
+    const signatureLabel = document.createElement('div');
+    signatureLabel.style.cssText = `
+      font-size: 10px;
+      color: #444;
+      margin-top: 4px;
+      font-family: 'Cairo', sans-serif;
+      font-weight: bold;
+    `;
+    signatureLabel.textContent = 'توقيع المعتمد';
+    signatureContainer.appendChild(signatureLabel);
+    
+    contentLayer.appendChild(signatureContainer);
   }
   
   container.appendChild(contentLayer);

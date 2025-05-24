@@ -31,30 +31,13 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          // تقسيم المكتبات الخارجية إلى حزم منفصلة
-          if (id.includes('node_modules')) {
-            if (id.includes('@tinymce') || id.includes('tinymce')) {
-              return 'tinymce';
-            }
-            if (id.includes('react')) {
-              return 'react';
-            }
-            if (id.includes('zustand') || id.includes('@tanstack/react-query')) {
-              return 'utils';
-            }
-            if (id.includes('html2canvas') || id.includes('jspdf') || id.includes('pdf-lib')) {
-              return 'pdf';
-            }
-            if (id.includes('framer-motion') || id.includes('lucide-react')) {
-              return 'ui';
-            }
-            if (id.includes('@supabase/supabase-js')) {
-              return 'supabase';
-            }
-            // باقي المكتبات تذهب إلى حزمة vendor
-            return 'vendor';
-          }
+        manualChunks: {
+          tinymce: ['@tinymce/tinymce-react', 'tinymce'],
+          react: ['react', 'react-dom'],
+          utils: ['zustand', '@tanstack/react-query'],
+          pdf: ['html2canvas', 'jspdf', 'pdf-lib'],
+          ui: ['framer-motion', 'lucide-react'],
+          supabase: ['@supabase/supabase-js']
         }
       }
     },
