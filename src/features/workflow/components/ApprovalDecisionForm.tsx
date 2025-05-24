@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, ThumbsDown, AlertCircle } from 'lucide-react';
 import { useApprovalDecisions } from '../hooks/useApprovalDecisions';
-import { ApprovalRequest, Signature } from '../types';
+import { ApprovalRequest, Signature } from '../../../types/database';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../lib/auth';
 import { useToast } from '../../../hooks/useToast';
@@ -61,6 +61,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
   // معالجة الموافقة
   async function handleApprove() {
     if (!selectedSignatureId) {
+      console.log('No signature selected');
       toast({
         title: 'خطأ',
         description: 'يرجى اختيار توقيع أو رفع توقيع جديد',
@@ -69,8 +70,11 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    // تأكد من أن معرف الطلب موجود وصالح
-    if (!request) {
+    // تحديد معرف الطلب (قد يكون في حقل id أو request_id)
+    const requestId = request.id || (request as any).request_id;
+    
+    if (!requestId) {
+      console.error('Invalid request ID:', request);
       toast({
         title: 'خطأ',
         description: 'معرف طلب الموافقة غير صالح',
@@ -79,11 +83,11 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    // استخدام request_id إذا كان موجودًا، وإلا استخدام id
-    const requestId = request.request_id || request.id;
-    console.log('Approving request with ID:', requestId);
-    
-    const success = await approveRequest(requestId, comments, selectedSignatureId);
+    const success = await approveRequest({
+      requestId: requestId,
+      comments,
+      signatureId: selectedSignatureId
+    });
     
     if (success) {
       onClose();
@@ -94,6 +98,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
   // معالجة الرفض
   async function handleReject() {
     if (!rejectionReason.trim()) {
+      console.log('No rejection reason provided');
       toast({
         title: 'خطأ',
         description: 'يرجى إدخال سبب الرفض',
@@ -102,8 +107,11 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    // تأكد من أن معرف الطلب موجود وصالح
-    if (!request) {
+    // تحديد معرف الطلب (قد يكون في حقل id أو request_id)
+    const requestId = request.id || (request as any).request_id;
+    
+    if (!requestId) {
+      console.error('Invalid request ID:', request);
       toast({
         title: 'خطأ',
         description: 'معرف طلب الموافقة غير صالح',
@@ -112,11 +120,10 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    // استخدام request_id إذا كان موجودًا، وإلا استخدام id
-    const requestId = request.request_id || request.id;
-    console.log('Rejecting request with ID:', requestId);
-    
-    const success = await rejectRequest(requestId, rejectionReason);
+    const success = await rejectRequest({
+      requestId: requestId,
+      reason: rejectionReason
+    });
     
     if (success) {
       onClose();
@@ -206,7 +213,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
             <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/30 rounded-lg p-3 text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
               <AlertCircle className="h-5 w-5 flex-shrink-0" />
               <div>
-                <p className="font-medium">لم يتم العثور على توقيع</p>
+                <p className="font-medium">لم يتم العثور على توقيع لديك</p>
                 <p className="text-sm">يرجى رفع توقيعك من صفحة الإعدادات قبل الموافقة على الخطاب</p>
               </div>
             </div>
@@ -229,7 +236,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
             <button
               type="button"
               onClick={handleApprove}
-              disabled={isLoading || !selectedSignatureId}
+              disabled={isLoading || (!selectedSignatureId && signatures.length > 0)}
               className="w-full px-4 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isLoading ? (

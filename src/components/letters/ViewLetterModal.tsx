@@ -44,7 +44,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
         
         // First get the letter ID associated with this request
         const { data: requestData, error: requestError } = await supabase.rpc(
-          'get_letter_by_request_id',
+          'get_letter_by_request_id_v2',
           { p_request_id: requestId }
         )
         
@@ -61,7 +61,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
         
         // Now load the full letter details
         const { data: letterDetailData, error: detailError } = await supabase.rpc(
-          'get_letter_details_for_approval',
+          'get_letter_details_for_approval_v2',
           { p_letter_id: requestData[0].letter_id }
         )
         
@@ -78,7 +78,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
         
         // Convert to full letter object structure
         const fullLetter: Letter = {
-          id: letterData.letter_id,
+          id: letterData.letter_id || letterData.id,
           user_id: '',  // Will be filled by regular fetch
           template_id: letterData.template_id,
           content: letterData.content,
@@ -87,6 +87,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
           year: letterData.year,
           created_at: new Date().toISOString(), // Will be updated
           updated_at: new Date().toISOString(),
+          verification_url: letterData.verification_url,
           verification_url: letterData.verification_url,
           letter_templates: {
             id: letterData.template_id,
