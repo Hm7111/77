@@ -90,6 +90,38 @@ export function SignatureUploader({ onSuccess, className = '' }: SignatureUpload
 
     setIsLoading(true);
     try {
+      // أولاً، تأكد من وجود الـ bucket - إذا لم يكن موجوداً فقم بإنشائه
+      const { data: buckets, error: bucketsError } = await supabase
+        .storage
+        .listBuckets();
+      
+      const bucketExists = buckets?.some(b => b.name === 'signatures');
+      
+      if (!bucketExists) {
+        // إنشاء bucket جديد للتوقيعات
+        const { error: createBucketError } = await supabase
+          .storage
+          .createBucket('signatures', {
+            public: true,
+            fileSizeLimit: 2 * 1024 * 1024 // 2MB
+          });
+        
+        if (createBucketError) {
+          console.error('Error creating bucket:', createBucketError);
+          throw new Error('فشل في إنشاء مخزن التوقيعات');
+        }
+        
+        // تعيين سياسات التخزين العامة
+        const { error: policyError } = await supabase
+          .storage
+          .from('signatures')
+          .createSignedUrl('test.txt', 60);
+          
+        if (policyError && !policyError.message.includes('not found')) {
+          console.error('Error setting storage policy:', policyError);
+        }
+      }
+
       // رفع الملف إلى التخزين
       const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
       const filePath = `${dbUser.id}/${fileName}`;
@@ -166,11 +198,19 @@ export function SignatureUploader({ onSuccess, className = '' }: SignatureUpload
       if (error) throw error;
 
       // حذف الملف من التخزين (استخلاص المسار من الرابط)
-      const path = signature.split('/').slice(-2).join('/');
-      if (path) {
-        await supabase.storage
-          .from('signatures')
-          .remove([path]);
+      const urlParts = signature.split('/');
+      const bucketName = urlParts[urlParts.indexOf('signatures') + 1];
+      const objectPath = urlParts.slice(urlParts.indexOf(bucketName) + 1).join('/');
+      
+      if (bucketName && objectPath) {
+        try {
+          await supabase.storage
+            .from('signatures')
+            .remove([`${dbUser.id}/${objectPath}`]);
+        } catch (storageError) {
+          console.error('Error removing file from storage:', storageError);
+          // Continue even if storage removal fails
+        }
       }
 
       // إعادة تعيين الحالة
