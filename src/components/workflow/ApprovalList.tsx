@@ -430,7 +430,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
                     sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />
                   )}
                 </div>
-                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 select-none">
+                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 select-none text-center">
                   <span className="font-bold">{role === 'approver' ? 'المرسل' : 'المعتمد'}</span>
                 </div>
                 <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 cursor-pointer select-none"
@@ -448,7 +448,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
                     sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />
                   )}
                 </div>
-                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 select-none">
+                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 select-none text-center">
                   <span className="font-bold">الحالة</span>
                 </div>
                 <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400 select-none">
@@ -512,7 +512,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
                       </div>
                       
                       <div className="px-4 flex items-center justify-start">
-                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
+                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg mx-auto">
                           <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 shadow-sm">
                             <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                           </div>
@@ -521,7 +521,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
                       </div>
                       
                       <div className="px-4 flex items-center justify-start">
-                        <div className="flex flex-col bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
+                        <div className="flex flex-col bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg mx-auto">
                           <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 mb-0.5">
                             <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                             <span className="font-medium">{moment(requestDate).format('iYYYY/iM/iD')}</span>
@@ -533,7 +533,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
                       </div>
                       
                       <div className="px-4 flex items-center justify-start">
-                        <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
+                        <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg mx-auto">
                           {getStatusIcon(approval.status)}
                           <WorkflowStatus status={approval.status} />
                         </div>
