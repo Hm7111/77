@@ -1,8 +1,9 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '../types/database'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Fallback values for when environment variables are not available (in production build)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://hbxalipjrbcrqljddxfp.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhieGFsaXBqcmJjcnFsamRkeGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk5OTc1NzQsImV4cCI6MjAyNTU3MzU3NH0.Uh9cFz170xA_jwVhUMlOdHrVrCIIh-QP9L00YCv-62M'
 
 let supabaseInstance: SupabaseClient<Database> | null = null
 
@@ -26,7 +27,7 @@ function createSupabaseClient() {
   if (supabaseInstance) return supabaseInstance
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase URL and Anon Key must be provided')
+    console.warn('Supabase URL or Anon Key not found in environment variables, using fallback values')
   }
 
   supabaseInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
