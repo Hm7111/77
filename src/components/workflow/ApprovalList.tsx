@@ -155,6 +155,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
 
   // فتح نافذة اتخاذ القرار
   const openDecisionModal = (request: any) => {
+    console.log('Opening decision modal for request:', request);
     setSelectedRequest(request);
     setShowDecisionModal(true);
   };

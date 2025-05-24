@@ -69,11 +69,19 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    const success = await approveRequest(
-      request.id,
-      comments,
-      selectedSignatureId
-    );
+    // تأكد من أن معرف الطلب موجود وصالح
+    if (!request || !request.id) {
+      toast({
+        title: 'خطأ',
+        description: 'معرف طلب الموافقة غير صالح',
+        type: 'error',
+      });
+      return;
+    }
+    
+    console.log('Approving request with ID:', request.id);
+    
+    const success = await approveRequest(request.id, comments, selectedSignatureId);
     
     if (success) {
       onClose();
@@ -92,10 +100,19 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    const success = await rejectRequest(
-      request.id,
-      rejectionReason
-    );
+    // تأكد من أن معرف الطلب موجود وصالح
+    if (!request || !request.id) {
+      toast({
+        title: 'خطأ',
+        description: 'معرف طلب الموافقة غير صالح',
+        type: 'error',
+      });
+      return;
+    }
+    
+    console.log('Rejecting request with ID:', request.id);
+    
+    const success = await rejectRequest(request.id, rejectionReason);
     
     if (success) {
       onClose();

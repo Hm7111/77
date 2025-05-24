@@ -15,6 +15,8 @@ export function useApprovalDecisions() {
    * الموافقة على طلب
    */
   const approveRequest = useCallback(async (requestId: string, comments?: string, signatureId?: string) => {
+    console.log('approveRequest called with:', { requestId, comments, signatureId });
+    
     if (!requestId) {
       toast({
         title: 'خطأ',
@@ -50,6 +52,12 @@ export function useApprovalDecisions() {
       if (!signatureId) {
         throw new Error('لم يتم العثور على توقيع. يرجى إضافة توقيع أولاً.');
       }
+      
+      console.log('Calling RPC approve_letter_with_signature with:', {
+        p_request_id: requestId,
+        p_signature_id: signatureId,
+        p_comments: comments || null
+      });
       
       const { error } = await supabase.rpc('approve_letter_with_signature', {
         p_request_id: requestId,
@@ -87,6 +95,8 @@ export function useApprovalDecisions() {
    * رفض طلب
    */
   const rejectRequest = useCallback(async (requestId: string, reason: string) => {
+    console.log('rejectRequest called with:', { requestId, reason });
+    
     if (!requestId) {
       toast({
         title: 'خطأ',
@@ -109,6 +119,11 @@ export function useApprovalDecisions() {
     setError(null);
     
     try {
+      console.log('Calling RPC reject_letter with:', {
+        p_request_id: requestId,
+        p_reason: reason,
+      });
+      
       const { error } = await supabase.rpc('reject_letter', {
         p_request_id: requestId,
         p_reason: reason,

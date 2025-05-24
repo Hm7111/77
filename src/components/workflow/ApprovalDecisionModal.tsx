@@ -17,6 +17,8 @@ interface ApprovalDecisionModalProps {
 export function ApprovalDecisionModal({ isOpen, onClose, request, onApprove, onReject }: ApprovalDecisionModalProps) {
   if (!isOpen) return null;
 
+  console.log('Rendering ApprovalDecisionModal with request:', request);
+  
   const handleSuccess = () => {
     if (request.status === 'approved' && onApprove) {
       onApprove();
