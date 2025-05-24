@@ -3,7 +3,7 @@ import { LetterContent } from '../../types';
 
 interface BasicInfoStepProps {
   content: LetterContent;
-  onContentChange: (content: Partial<LetterContent>) => void;
+  onContentChange: (updater: (prevContent: LetterContent) => LetterContent) => void;
   onNextStep: () => void;
   autosaveEnabled: boolean;
   onToggleAutosave: () => void;
@@ -27,7 +27,7 @@ export default function BasicInfoStep({
         <input
           type="text"
           value={content.subject ?? ''}
-          onChange={(e) => onContentChange({ subject: e.target.value })}
+          onChange={(e) => onContentChange(prev => ({ ...prev, subject: e.target.value }))}
           className="w-full p-3 border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary transition-all"
           placeholder="أدخل موضوع الخطاب (للأرشفة والبحث)"
           required
@@ -38,7 +38,7 @@ export default function BasicInfoStep({
         <input
           type="text"
           value={content.to ?? ''}
-          onChange={(e) => onContentChange({ to: e.target.value })}
+          onChange={(e) => onContentChange(prev => ({ ...prev, to: e.target.value }))}
           className="w-full p-3 border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary transition-all"
           placeholder="أدخل الجهة المرسل إليها (للأرشفة والبحث)"
           required
@@ -48,7 +48,7 @@ export default function BasicInfoStep({
         <label className="block text-sm font-medium mb-2">التصنيف (اختياري)</label>
         <select
           value={content.category ?? ''}
-          onChange={(e) => onContentChange({ category: e.target.value })}
+          onChange={(e) => onContentChange(prev => ({ ...prev, category: e.target.value }))}
           className="w-full p-3 border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary transition-all"
         >
           <option value="">بدون تصنيف</option>
@@ -65,7 +65,7 @@ export default function BasicInfoStep({
         <label className="block text-sm font-medium mb-2">ملاحظات (اختياري)</label>
         <textarea
           value={content.notes ?? ''}
-          onChange={(e) => onContentChange({ notes: e.target.value })}
+          onChange={(e) => onContentChange(prev => ({ ...prev, notes: e.target.value }))}
           className="w-full p-3 border rounded-lg focus:ring-1 focus:ring-primary focus:border-primary transition-all h-24 resize-none"
           placeholder="أدخل أي ملاحظات إضافية عن الخطاب (للأرشفة الداخلية فقط)"
         />
