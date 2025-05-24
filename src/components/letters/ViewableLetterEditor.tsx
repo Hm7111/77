@@ -1,103 +1,107 @@
-import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { ArrowRight, Printer, Download, Share2, Copy, Eye, EyeOff, FileText, CheckCircle, History, AlertCircle, RefreshCw } from 'lucide-react'
-import QRCode from 'qrcode.react'
-import moment from 'moment-hijri'
-import { supabase } from '../../lib/supabase'
-import { useToast } from '../../hooks/useToast'
-import { Letter } from '../../types/database'
-import { ExportOptionsDialog } from './ExportOptionsDialog'
-import { exportToPDF } from '../../lib/pdf-export'
-import { WorkflowStatus } from '../workflow/WorkflowStatus'
-import { WorkflowTimeline } from '../workflow/WorkflowTimeline'
-import { ApprovalRequestModal } from '../workflow/ApprovalRequestModal'
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { 
+  ArrowRight, Printer, Download, Share2, Copy, Eye, EyeOff, FileText, CheckCircle, History, AlertCircle, RefreshCw,
+  FileCheck, Calendar, User, Building, Settings
+} from 'lucide-react';
+import QRCode from 'qrcode.react';
+import moment from 'moment-hijri';
+import { supabase } from '../../lib/supabase';
+import { useToast } from '../../hooks/useToast';
+import { Letter } from '../../types/database';
+import { ExportOptionsDialog } from './ExportOptionsDialog';
+import { exportToPDF } from '../../lib/pdf-export';
+import { WorkflowStatus } from '../workflow/WorkflowStatus';
+import { WorkflowTimeline } from '../workflow/WorkflowTimeline';
+import { ApprovalRequestModal } from '../workflow/ApprovalRequestModal';
 
 export function ViewableLetterEditor() {
-  const { id } = useParams()
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { toast } = useToast()
-  const letterPreviewRef = useRef<HTMLDivElement>(null)
+  const { id } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const letterPreviewRef = useRef<HTMLDivElement>(null);
 
-  const [letter, setLetter] = useState<Letter | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isExporting, setIsExporting] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
-  const [scale, setScale] = useState(1)
-  const [showExportOptions, setShowExportOptions] = useState(false)
-  const [lineHeight, setLineHeight] = useState(0)
-  const [showPrintPreview, setShowPrintPreview] = useState(false)
-  const [showWorkflowDetails, setShowWorkflowDetails] = useState(false)
-  const [showApprovalModal, setShowApprovalModal] = useState(false)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [retryCount, setRetryCount] = useState(0)
+  const [letter, setLetter] = useState<Letter | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [showExportOptions, setShowExportOptions] = useState(false);
+  const [lineHeight, setLineHeight] = useState(0);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [showWorkflowDetails, setShowWorkflowDetails] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [showGuides, setShowGuides] = useState(false);
 
   // Check if we're coming from an approval context
-  const [isFromApproval, setIsFromApproval] = useState(false)
-  const [approvalRequestId, setApprovalRequestId] = useState<string | null>(null)
+  const [isFromApproval, setIsFromApproval] = useState(false);
+  const [approvalRequestId, setApprovalRequestId] = useState<string | null>(null);
 
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.search)
-    const fromApproval = queryParams.get('fromApproval')
-    const requestId = queryParams.get('requestId')
+    const queryParams = new URLSearchParams(location.search);
+    const fromApproval = queryParams.get('fromApproval');
+    const requestId = queryParams.get('requestId');
     
     if (fromApproval === 'true' && requestId) {
-      setIsFromApproval(true)
-      setApprovalRequestId(requestId)
-      console.log('Viewing from approval context, request ID:', requestId)
+      setIsFromApproval(true);
+      setApprovalRequestId(requestId);
+      console.log('Viewing from approval context, request ID:', requestId);
     }
     
-    loadLetter()
-  }, [id, location.search, retryCount])
+    loadLetter();
+  }, [id, location.search, retryCount]);
 
   async function loadLetter() {
-    if (!id) return
+    if (!id) return;
     
-    setIsLoading(true)
-    setLoadError(null)
+    setIsLoading(true);
+    setLoadError(null);
     
     try {
-      console.log('Loading letter with ID:', id)
+      console.log('Loading letter with ID:', id);
       
       let letterData;
       
       // If we're viewing from an approval context, use the special RPC function
       if (isFromApproval && approvalRequestId) {
-        console.log('Loading letter via approval request:', approvalRequestId)
+        console.log('Loading letter via approval request:', approvalRequestId);
         
         // First, get the letter ID associated with this request
         const { data: requestData, error: requestError } = await supabase.rpc(
           'get_letter_by_request_id',
           { p_request_id: approvalRequestId }
-        )
+        );
         
         if (requestError) {
-          console.error('Error fetching letter by request ID:', requestError)
-          throw new Error('فشل في الحصول على معلومات الخطاب من طلب الموافقة')
+          console.error('Error fetching letter by request ID:', requestError);
+          throw new Error('فشل في الحصول على معلومات الخطاب من طلب الموافقة');
         }
         
         if (!requestData || requestData.length === 0) {
-          throw new Error('لم يتم العثور على الخطاب المرتبط بطلب الموافقة')
+          throw new Error('لم يتم العثور على الخطاب المرتبط بطلب الموافقة');
         }
         
-        console.log('Letter data from request:', requestData)
+        console.log('Letter data from request:', requestData);
         
         // Now load the full letter details
         const { data: letterDetailData, error: detailError } = await supabase.rpc(
           'get_letter_details_for_approval',
           { p_letter_id: requestData[0].letter_id }
-        )
+        );
         
         if (detailError) {
-          console.error('Error fetching letter details:', detailError)
-          throw detailError
+          console.error('Error fetching letter details:', detailError);
+          throw detailError;
         }
         
         if (!letterDetailData || letterDetailData.length === 0) {
-          throw new Error('فشل في تحميل تفاصيل الخطاب')
+          throw new Error('فشل في تحميل تفاصيل الخطاب');
         }
         
-        letterData = letterDetailData[0]
+        letterData = letterDetailData[0];
         
         // Convert to full letter object structure
         const fullLetter: Letter = {
@@ -123,57 +127,57 @@ export function ViewableLetterEditor() {
             variables: [],
             zones: []
           }
-        }
+        };
         
-        setLetter(fullLetter)
+        setLetter(fullLetter);
         
       } else {
         // Standard letter loading
-        console.log('Loading letter through standard method')
+        console.log('Loading letter through standard method');
         const { data, error } = await supabase
           .from('letters')
           .select('*, letter_templates(*)')
           .eq('id', id)
-          .single()
+          .single();
 
         if (error) {
-          console.error('Error fetching letter:', error)
-          throw error
+          console.error('Error fetching letter:', error);
+          throw error;
         }
         
-        letterData = data
-        setLetter(data)
+        letterData = data;
+        setLetter(data);
       }
       
-      console.log('Letter loaded successfully:', letterData)
+      console.log('Letter loaded successfully:', letterData);
       
     } catch (error) {
-      console.error('Error loading letter:', error)
-      setLoadError(error instanceof Error ? error.message : 'لم نتمكن من تحميل الخطاب')
+      console.error('Error loading letter:', error);
+      setLoadError(error instanceof Error ? error.message : 'لم نتمكن من تحميل الخطاب');
       
       toast({
         title: 'خطأ',
         description: 'لم نتمكن من تحميل الخطاب',
         type: 'error'
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
   // Retry loading letter
   function retryLoadLetter() {
-    setRetryCount(prev => prev + 1)
+    setRetryCount(prev => prev + 1);
   }
 
   // معالجة خيارات التصدير
   async function handleExportOptionsConfirm(options: {withTemplate: boolean, action: 'print' | 'export'}) {
-    setShowExportOptions(false)
+    setShowExportOptions(false);
     
-    if (!letter) return
+    if (!letter) return;
     
     try {
-      setIsExporting(true)
+      setIsExporting(true);
       if (options.action === 'print') {
         // طباعة الخطاب
         setShowPrintPreview(true);
@@ -209,37 +213,37 @@ export function ViewableLetterEditor() {
         });
       }
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error:', error);
       toast({
         title: 'خطأ',
         description: error instanceof Error ? error.message : 'حدث خطأ أثناء عملية التصدير',
         type: 'error'
-      })
+      });
     } finally {
-      setIsExporting(false)
+      setIsExporting(false);
     }
   }
 
   // نسخ رابط التحقق
   function copyVerificationUrl() {
-    if (!letter?.verification_url) return
+    if (!letter?.verification_url) return;
     
-    const url = `${window.location.origin}/verify/${letter.verification_url}`
+    const url = `${window.location.origin}/verify/${letter.verification_url}`;
     navigator.clipboard.writeText(url)
       .then(() => {
         toast({
           title: 'تم النسخ',
           description: 'تم نسخ رابط التحقق بنجاح',
           type: 'success'
-        })
+        });
       })
       .catch(() => {
         toast({
           title: 'خطأ',
           description: 'حدث خطأ أثناء نسخ الرابط',
           type: 'error'
-        })
-      })
+        });
+      });
   }
 
   // مشاركة الخطاب
@@ -249,11 +253,11 @@ export function ViewableLetterEditor() {
         title: 'غير متاح',
         description: 'لا يوجد رابط مشاركة لهذا الخطاب',
         type: 'warning'
-      })
-      return
+      });
+      return;
     }
     
-    const url = `${window.location.origin}/verify/${letter.verification_url}`
+    const url = `${window.location.origin}/verify/${letter.verification_url}`;
     
     if (navigator.share) {
       navigator.share({
@@ -261,11 +265,11 @@ export function ViewableLetterEditor() {
         text: `مشاركة رابط التحقق من الخطاب رقم ${letter.letter_reference || `${letter.number}/${letter.year}`}`,
         url
       }).catch(err => {
-        console.error('Error sharing:', err)
-        copyToClipboard(url)
-      })
+        console.error('Error sharing:', err);
+        copyToClipboard(url);
+      });
     } else {
-      copyToClipboard(url)
+      copyToClipboard(url);
     }
   }
   
@@ -277,49 +281,49 @@ export function ViewableLetterEditor() {
           title: 'تم النسخ',
           description: 'تم نسخ رابط التحقق إلى الحافظة',
           type: 'success'
-        })
+        });
       })
       .catch(() => {
         toast({
           title: 'خطأ',
           description: 'لم نتمكن من نسخ الرابط',
           type: 'error'
-        })
+        });
         
         // طريقة بديلة للنسخ
-        const textarea = document.createElement('textarea')
-        textarea.value = text
-        document.body.appendChild(textarea)
-        textarea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textarea)
-      })
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      });
   }
 
   // تبديل حجم العرض
   const toggleScale = () => {
-    setScale(prev => prev === 1 ? 0.8 : 1)
-  }
+    setScale(prev => prev === 1 ? 0.8 : 1);
+  };
   
   // ضبط ارتفاع السطر
   const handleLineHeightChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setLineHeight(parseFloat(e.target.value))
-  }
+    setLineHeight(parseFloat(e.target.value));
+  };
 
   // عرض نافذة خيارات التصدير
   const handleExportClick = () => {
-    setShowExportOptions(true)
-  }
+    setShowExportOptions(true);
+  };
 
   // التبديل بين عرض تفاصيل سير العمل
   const toggleWorkflowDetails = () => {
     setShowWorkflowDetails(!showWorkflowDetails);
-  }
+  };
 
   // فتح نافذة طلب الموافقة
   const handleRequestApproval = () => {
     setShowApprovalModal(true);
-  }
+  };
   
   // العودة للقائمة السابقة إذا كنا جئنا من شاشة الموافقات
   const handleGoBack = () => {
@@ -328,14 +332,14 @@ export function ViewableLetterEditor() {
     } else {
       navigate('/admin/letters');
     }
-  }
+  };
 
   if (isLoading) {
     return (
       <div className="p-6 flex justify-center items-center h-[70vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-primary border-b-transparent border-l-primary border-r-transparent"></div>
       </div>
-    )
+    );
   }
 
   if (loadError) {
@@ -375,7 +379,7 @@ export function ViewableLetterEditor() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!letter) {
@@ -398,7 +402,7 @@ export function ViewableLetterEditor() {
           <p>الخطاب غير موجود أو ليس لديك صلاحية الوصول إليه</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Get template data from template_snapshot if available, otherwise from letter_templates
@@ -471,13 +475,12 @@ export function ViewableLetterEditor() {
             >
               <div className="absolute inset-0">
                 {/* مرجع الخطاب المركب */}
-                <div className="absolute top-[5px] right-[35px] text-sm font-semibold text-blue-600">
-                  {letter.letter_reference || `${letter.branch_code || 'GEN'}-${letter.number}/${letter.year}`}
+                <div className="absolute top-[25px] left-[85px] w-32 text-right">
+                  <span className="font-medium text-sm">
+                    {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+                  </span>
                 </div>
                 
-                <div className="absolute top-[25px] left-[85px] w-10 p-1 text-sm font-semibold text-center">
-                  {letter.number}
-                </div>
                 <div className="absolute top-[60px] left-[40px] w-32 p-1 text-sm font-semibold text-center">
                   {letter.content.date}
                 </div>
@@ -556,6 +559,16 @@ export function ViewableLetterEditor() {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setShowGuides(!showGuides)}
+            className={`p-2 rounded-lg ${
+              showGuides ? 'bg-yellow-500 text-white' : 'text-gray-600 hover:text-gray-900'
+            }`}
+            title={showGuides ? 'إخفاء النقاط الإرشادية' : 'إظهار النقاط الإرشادية'}
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+          
           <button
             onClick={handleExportClick}
             className="flex items-center gap-x-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
@@ -780,14 +793,21 @@ export function ViewableLetterEditor() {
             }}
           >
             <div className="absolute inset-0">
-              {/* مرجع الخطاب المركب */}
-              <div className="absolute top-[5px] right-[35px] text-sm font-semibold text-blue-600">
-                {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
-              </div>
+              {/* النقاط الإرشادية للمرجع والتاريخ */}
+              {showGuides && (
+                <>
+                  <div className="absolute top-[25px] left-[85px] w-32 h-6 border-2 border-yellow-500 rounded pointer-events-none" />
+                  <div className="absolute top-[60px] left-[40px] w-32 h-6 border-2 border-yellow-500 rounded pointer-events-none" />
+                  <div className="absolute top-[120px] right-[35px] left-[40px] bottom-[120px] border-2 border-yellow-500 rounded pointer-events-none" />
+                </>
+              )}
             
-              <div className="absolute top-[25px] left-[85px] w-10 p-1 text-sm font-semibold text-center">
-                {letter.number}
+              <div className="absolute top-[25px] left-[85px] w-32 text-right">
+                <span className="font-medium text-sm">
+                  {letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`}
+                </span>
               </div>
+              
               <div className="absolute top-[60px] left-[40px] w-32 p-1 text-sm font-semibold text-center">
                 {letter.content.date}
               </div>
@@ -829,7 +849,7 @@ export function ViewableLetterEditor() {
                     includeMargin
                     className="bg-white p-1.5 rounded"
                   />
-                  <span className="text-xs text-gray-500">رمز التحقق</span>
+                  <span className="text-xs text-gray-500 mt-1">رمز التحقق</span>
                 </div>
               )}
 
@@ -881,7 +901,7 @@ export function ViewableLetterEditor() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // Component for ClipboardCheck icon

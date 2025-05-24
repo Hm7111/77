@@ -212,7 +212,7 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
               <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
               <div className="flex justify-center gap-3">
                 <button 
-                  onClick={loadLetter}
+                  onClick={() => loadLetter()}
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
                 >
                   <RefreshCw className="h-4 w-4" />

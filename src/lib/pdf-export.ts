@@ -558,15 +558,16 @@ export async function exportElementToPDF(element: HTMLElement, options: Partial<
     const pageWidth = 595;
     const pageHeight = 842;
     
-    // إضافة Canvas إلى PDF
-    pdf.addImage(
-      canvas.toDataURL('image/jpeg', quality),
-      'JPEG',
-      0, 0,
-      pageWidth, pageHeight,
-      undefined,
-      'FAST' // تحسين: استخدام ضغط أسرع
-    );
+    // إضافة Canvas إلى PDF مع تحسين الضغط
+    pdf.addImage({
+      imageData: canvas.toDataURL('image/jpeg', quality),
+      format: 'JPEG', // تحسين: استخدام JPEG بدلاً من PNG للحصول على حجم أصغر
+      x: 0,
+      y: 0,
+      width: pageWidth,
+      height: pageHeight,
+      compression: 'FAST' // تحسين: استخدام ضغط أسرع
+    });
     
     // حفظ PDF
     pdf.save(filename);

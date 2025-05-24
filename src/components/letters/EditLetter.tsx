@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowRight, Save, Eye, Settings, Building } from 'lucide-react';
 import { useLetters } from '../../hooks/useLetters';
@@ -268,10 +268,10 @@ export function EditLetter() {
                     <div className="absolute top-[25px] left-[85px] w-32 h-6 border-2 border-yellow-500 rounded pointer-events-none" />
                     <div className="absolute top-[60px] left-[40px] w-32 h-6 border-2 border-yellow-500 rounded pointer-events-none" />
                     <div className="absolute top-[120px] right-[60px] left-[60px] h-[520px] border-2 border-yellow-500 rounded pointer-events-none" />
-                    <div className="absolute top-[25px] left-[125px] -translate-x-full whitespace-nowrap text-xs text-yellow-600">
+                    <div className="absolute top-[25px] left-[85px] -translate-x-full whitespace-nowrap text-xs text-yellow-600">
                       موقع المرجع
                     </div>
-                    <div className="absolute top-[60px] left-[85px] -translate-x-full whitespace-nowrap text-xs text-yellow-600">
+                    <div className="absolute top-[60px] left-[40px] -translate-x-full whitespace-nowrap text-xs text-yellow-600">
                       موقع التاريخ
                     </div>
                     <div className="absolute top-[120px] right-[60px] -translate-y-6 text-xs text-yellow-600">
