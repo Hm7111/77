@@ -13,9 +13,7 @@ import {
   SortAsc, 
   SortDesc,
   FileText,
-  Calendar,
-  MoreHorizontal,
-  ChevronDown
+  Calendar
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -40,7 +38,6 @@ export function LettersList({}: LetterListProps) {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [previewLetter, setPreviewLetter] = useState<Letter | null>(null);
-  const [openActionsMenu, setOpenActionsMenu] = useState<string | null>(null);
   
   const { data: letters = [], isLoading, refetch } = useQuery({
     queryKey: ['letters', dbUser?.id],
@@ -58,13 +55,6 @@ export function LettersList({}: LetterListProps) {
     },
     enabled: !!dbUser?.id
   });
-
-  // Hide actions menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => setOpenActionsMenu(null);
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
 
   // Filter and sort letters
   const filteredLetters = useMemo(() => {
@@ -149,30 +139,24 @@ export function LettersList({}: LetterListProps) {
     setPreviewLetter(letter);
   }
 
-  // Toggle actions menu for a specific letter
-  function toggleActionsMenu(e: React.MouseEvent, letterId: string) {
-    e.stopPropagation(); // Prevent parent click handlers
-    setOpenActionsMenu(openActionsMenu === letterId ? null : letterId);
-  }
-
   return (
     <div>
       {/* تأكيد الحذف */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full p-6 shadow-xl">
             <h3 className="text-lg font-bold mb-4">تأكيد الحذف</h3>
             <p className="mb-6">هل أنت متأكد من رغبتك في حذف هذا الخطاب؟ لا يمكن التراجع عن هذا الإجراء.</p>
             <div className="flex gap-3 justify-end">
               <button 
                 onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded"
               >
                 إلغاء
               </button>
               <button 
                 onClick={() => handleDelete(showDeleteConfirm)}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
               >
                 تأكيد الحذف
               </button>
@@ -199,15 +183,14 @@ export function LettersList({}: LetterListProps) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="البحث في الخطابات..."
-              className="w-full pl-3 pr-10 py-2 border dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              className="w-full pl-3 pr-10 py-2 border dark:border-gray-700 rounded-lg"
             />
           </div>
           
           <div className="relative">
             <button
-              className="px-3 py-2 border dark:border-gray-700 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+              className="px-3 py-2 border dark:border-gray-700 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-900"
               onClick={(e) => {
-                e.stopPropagation();
                 const dropdown = e.currentTarget.nextElementSibling;
                 dropdown?.classList.toggle('hidden');
                 
@@ -226,19 +209,18 @@ export function LettersList({}: LetterListProps) {
             >
               <Filter className="h-4 w-4" />
               <span>فلترة</span>
-              <ChevronDown className="h-4 w-4 opacity-70" />
             </button>
             
-            <div className="absolute left-0 mt-1 hidden z-10 bg-white dark:bg-gray-900 shadow-lg border dark:border-gray-700 rounded-lg w-56">
+            <div className="absolute left-0 mt-1 hidden z-10 bg-white dark:bg-gray-900 shadow-lg border dark:border-gray-700 rounded-lg w-48">
               <div className="p-3">
-                <div className="mb-3">
-                  <h4 className="text-xs font-medium mb-2 text-primary border-b pb-1">حالة الخطاب</h4>
-                  <div className="space-y-2">
+                <div className="mb-2">
+                  <h4 className="text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">حالة الخطاب</h4>
+                  <div className="space-y-1">
                     <label className="flex items-center">
                       <input 
                         type="radio" 
                         name="status" 
-                        className="mr-2 text-primary focus:ring-primary" 
+                        className="mr-2" 
                         checked={statusFilter === 'all'}
                         onChange={() => setStatusFilter('all')}
                       />
@@ -248,7 +230,7 @@ export function LettersList({}: LetterListProps) {
                       <input 
                         type="radio" 
                         name="status" 
-                        className="mr-2 text-primary focus:ring-primary" 
+                        className="mr-2" 
                         checked={statusFilter === 'completed'}
                         onChange={() => setStatusFilter('completed')}
                       />
@@ -258,7 +240,7 @@ export function LettersList({}: LetterListProps) {
                       <input 
                         type="radio" 
                         name="status" 
-                        className="mr-2 text-primary focus:ring-primary" 
+                        className="mr-2" 
                         checked={statusFilter === 'draft'}
                         onChange={() => setStatusFilter('draft')}
                       />
@@ -268,9 +250,9 @@ export function LettersList({}: LetterListProps) {
                 </div>
                 
                 <div className="mb-2">
-                  <h4 className="text-xs font-medium mb-2 text-primary border-b pb-1">الترتيب</h4>
+                  <h4 className="text-xs font-medium mb-1 text-gray-500 dark:text-gray-400">الترتيب</h4>
                   <select 
-                    className="w-full text-sm p-2 border dark:border-gray-700 rounded focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="w-full text-sm p-2 border dark:border-gray-700 rounded"
                     value={`${sortField}-${sortDirection}`}
                     onChange={(e) => {
                       const [field, direction] = e.target.value.split('-');
@@ -290,7 +272,7 @@ export function LettersList({}: LetterListProps) {
           
           <button
             onClick={() => navigate('new')}
-            className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
+            className="bg-primary text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             <span>إنشاء خطاب جديد</span>
@@ -301,155 +283,188 @@ export function LettersList({}: LetterListProps) {
       {/* قائمة الخطابات */}
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-10 w-10 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent"></div>
-            <p className="text-gray-500 dark:text-gray-400 animate-pulse">جارِ تحميل الخطابات...</p>
-          </div>
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent"></div>
         </div>
       ) : filteredLetters.length === 0 ? (
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-10 text-center border dark:border-gray-800">
-          <div className="mx-auto w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-5">
-            <File className="h-10 w-10 text-gray-400" />
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-8 text-center">
+          <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+            <File className="h-8 w-8 text-gray-400" />
           </div>
-          <h3 className="text-xl font-semibold mb-3">لا توجد خطابات</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
+          <h3 className="text-lg font-medium mb-2">لا توجد خطابات</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             {search || statusFilter !== 'all' ? 
               'لا توجد خطابات مطابقة لمعايير البحث الحالية' : 
-              'لم تقم بإنشاء أي خطابات بعد. يمكنك البدء بإنشاء خطاب جديد الآن.'}
+              'لم تقم بإنشاء أي خطابات بعد'}
           </p>
           <button
             onClick={() => navigate('new')}
-            className="bg-primary text-white px-5 py-2.5 rounded-lg inline-flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-sm"
+            className="bg-primary text-white px-4 py-2 rounded-lg inline-flex items-center gap-2"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             <span>إنشاء خطاب جديد</span>
           </button>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden border dark:border-gray-800">
-          {filteredLetters.map((letter) => (
-            <div key={letter.id} 
-              className="border-b dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-              <div className="p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center gap-4">
-                {/* معلومات الخطاب الرئيسية */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-3 mb-2">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 px-3 py-1.5 rounded-lg font-mono text-sm">
-                      {letter.number}/{letter.year}
-                    </div>
-                    
-                    <span 
-                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        letter.status === 'completed' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                      }`}
-                    >
-                      {letter.status === 'completed' ? 'مكتمل' : 'مسودة'}
-                    </span>
-                    
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-                      <Calendar className="h-3.5 w-3.5" />
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden border dark:border-gray-800">
+          {/* رأس الجدول */}
+          <div className="grid grid-cols-7 bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700 py-3">
+            <div className="px-4 text-center font-medium text-primary flex items-center justify-center gap-1 cursor-pointer"
+              onClick={() => {
+                if (sortField === 'number') {
+                  setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                } else {
+                  setSortField('number');
+                  setSortDirection('desc');
+                }
+              }}
+            >
+              <span>رقم الخطاب</span>
+              {sortField === 'number' && (sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />)}
+            </div>
+
+            <div className="px-4 text-center font-medium text-primary border-r dark:border-gray-700">
+              الموضوع
+            </div>
+
+            <div className="px-4 text-center font-medium text-primary border-r dark:border-gray-700">
+              الجهة
+            </div>
+
+            <div className="px-4 text-center font-medium text-primary border-r dark:border-gray-700">
+              القالب
+            </div>
+
+            <div className="px-4 text-center font-medium text-primary border-r dark:border-gray-700">
+              الحالة
+            </div>
+
+            <div className="px-4 text-center font-medium text-primary flex items-center justify-center gap-1 cursor-pointer border-r dark:border-gray-700"
+              onClick={() => {
+                if (sortField === 'created_at') {
+                  setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                } else {
+                  setSortField('created_at');
+                  setSortDirection('desc');
+                }
+              }}
+            >
+              <span>التاريخ</span>
+              {sortField === 'created_at' && (sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />)}
+            </div>
+
+            <div className="px-4 text-center font-medium text-primary border-r dark:border-gray-700">
+              الإجراءات
+            </div>
+          </div>
+          
+          {/* بيانات الخطابات */}
+          <div>
+            {filteredLetters.map((letter) => (
+              <div key={letter.id} className="grid grid-cols-7 hover:bg-gray-50 dark:hover:bg-gray-800/50 border-b dark:border-gray-700 transition-colors">
+                <div className="px-4 py-4 flex items-center justify-center border-r dark:border-gray-700">
+                  <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg font-mono text-center">
+                    {letter.number}/{letter.year}
+                  </div>
+                </div>
+
+                <div className="px-4 py-4 border-r dark:border-gray-700">
+                  <div className="truncate max-w-[200px]" title={letter.content.subject}>
+                    {letter.content.subject || '<بلا موضوع>'}
+                  </div>
+                </div>
+
+                <div className="px-4 py-4 border-r dark:border-gray-700">
+                  <div className="truncate max-w-[200px]" title={letter.content.to}>
+                    {letter.content.to || '<بلا جهة>'}
+                  </div>
+                </div>
+
+                <div className="px-4 py-4 border-r dark:border-gray-700">
+                  <div className="truncate flex items-center gap-1.5">
+                    {letter.letter_templates?.image_url ? (
+                      <div className="w-6 h-6 rounded bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
+                        <img src={letter.letter_templates.image_url} className="w-full h-full object-cover" alt="" />
+                      </div>
+                    ) : (
+                      <FileText className="h-4 w-4 text-gray-400" />
+                    )}
+                    <span>{letter.letter_templates?.name ?? 'غير محدد'}</span>
+                  </div>
+                </div>
+
+                <div className="px-4 py-4 flex items-center justify-center border-r dark:border-gray-700">
+                  <span 
+                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                      letter.status === 'completed' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                    }`}
+                  >
+                    {letter.status === 'completed' ? 'مكتمل' : 'مسودة'}
+                  </span>
+                </div>
+
+                <div className="px-4 py-4 border-r dark:border-gray-700 flex items-center">
+                  <div className="flex flex-col items-center w-full">
+                    <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg">
+                      <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                       <span>{new Date(letter.created_at).toLocaleDateString('ar-SA')}</span>
                     </div>
                   </div>
-                  
-                  <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1 line-clamp-1">
-                    {letter.content.subject || '<بلا موضوع>'}
-                  </h3>
-                  
-                  <div className="flex flex-wrap items-center gap-x-6 text-sm">
-                    <div className="text-gray-700 dark:text-gray-300">
-                      <span className="text-gray-500 dark:text-gray-400 ml-1">إلى:</span>
-                      {letter.content.to || '<بلا جهة>'}
-                    </div>
-                    
-                    <div className="text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                      <span className="text-gray-500 dark:text-gray-400 ml-1">القالب:</span>
-                      {letter.letter_templates?.image_url ? (
-                        <div className="w-4 h-4 rounded bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
-                          <img src={letter.letter_templates.image_url} className="w-full h-full object-cover" alt="" />
-                        </div>
-                      ) : null}
-                      <span>{letter.letter_templates?.name ?? 'غير محدد'}</span>
-                    </div>
-                  </div>
                 </div>
-                
-                {/* أزرار الإجراءات */}
-                <div className="flex items-center gap-2 self-end md:self-auto">
-                  <div className="flex items-center">
-                    <button 
-                      onClick={() => navigate(`view/${letter.id}`)}
-                      className="px-3 py-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex items-center gap-1.5 text-sm"
-                      title="عرض الخطاب"
-                    >
-                      <Eye className="h-4 w-4" />
-                      <span className="hidden sm:inline">عرض</span>
-                    </button>
-                    
-                    <button 
-                      onClick={() => navigate(`edit/${letter.id}`)}
-                      className="px-3 py-1.5 text-primary hover:text-primary/80 hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors flex items-center gap-1.5 text-sm"
-                      title="تعديل الخطاب"
-                    >
-                      <Edit className="h-4 w-4" />
-                      <span className="hidden sm:inline">تعديل</span>
-                    </button>
-                    
-                    {/* قائمة المزيد من الإجراءات */}
-                    <div className="relative">
-                      <button
-                        onClick={(e) => toggleActionsMenu(e, letter.id)}
-                        className="px-2 py-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center gap-1 text-sm"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="hidden sm:inline">المزيد</span>
-                      </button>
-                      
-                      {openActionsMenu === letter.id && (
-                        <div className="absolute left-0 mt-1 bg-white dark:bg-gray-900 shadow-lg border dark:border-gray-700 rounded-lg w-48 z-20 py-1">
-                          <button 
-                            onClick={() => handlePrint(letter)}
-                            className="w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
-                          >
-                            <Printer className="h-4 w-4" />
-                            <span>طباعة الخطاب</span>
-                          </button>
-                          
-                          <button 
-                            onClick={() => handleExport(letter)}
-                            className="w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
-                          >
-                            <Download className="h-4 w-4" />
-                            <span>تصدير PDF</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => handlePreviewHighQuality(letter)}
-                            className="w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
-                          >
-                            <FileText className="h-4 w-4" />
-                            <span>جودة عالية PDF</span>
-                          </button>
-                          
-                          <div className="border-t dark:border-gray-700 my-1"></div>
-                          
-                          <button 
-                            onClick={() => setShowDeleteConfirm(letter.id)}
-                            className="w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                          >
-                            <Trash className="h-4 w-4" />
-                            <span>حذف الخطاب</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+
+                <div className="px-4 py-4 flex items-center justify-center gap-1">
+                  <button 
+                    onClick={() => navigate(`view/${letter.id}`)}
+                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    title="عرض الخطاب"
+                  >
+                    <Eye className="h-4.5 w-4.5" />
+                  </button>
+                  
+                  <button 
+                    onClick={() => navigate(`edit/${letter.id}`)}
+                    className="p-2 text-gray-500 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors"
+                    title="تعديل الخطاب"
+                  >
+                    <Edit className="h-4.5 w-4.5" />
+                  </button>
+                  
+                  <button 
+                    onClick={() => handlePrint(letter)}
+                    className="p-2 text-gray-500 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors"
+                    title="طباعة الخطاب"
+                  >
+                    <Printer className="h-4.5 w-4.5" />
+                  </button>
+                  
+                  <button 
+                    onClick={() => handleExport(letter)}
+                    className="p-2 text-gray-500 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 rounded-lg transition-colors"
+                    title="تصدير PDF"
+                  >
+                    <Download className="h-4.5 w-4.5" />
+                  </button>
+                  
+                  <button
+                    onClick={() => handlePreviewHighQuality(letter)}
+                    className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                    title="تصدير PDF بجودة عالية"
+                  >
+                    <FileText className="h-4.5 w-4.5" />
+                  </button>
+                  
+                  <button 
+                    onClick={() => setShowDeleteConfirm(letter.id)}
+                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title="حذف الخطاب"
+                  >
+                    <Trash className="h-4.5 w-4.5" />
+                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
       
