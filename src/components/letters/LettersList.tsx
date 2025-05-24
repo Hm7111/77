@@ -568,68 +568,74 @@ export function LettersList() {
       ) : (
         <div className="bg-white dark:bg-gray-900 rounded-lg overflow-hidden shadow border dark:border-gray-800">
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-900/50">
-                <tr>
-                  <th 
-                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer"
-                    onClick={() => setSort({
-                      field: 'number',
-                      direction: sort.field === 'number' && sort.direction === 'desc' ? 'asc' : 'desc'
-                    })}
-                    title="انقر للترتيب"
-                  >
-                    <div className="flex items-center gap-1 justify-start">
-                      <span>رقم الخطاب</span>
-                      {sort.field === 'number' && (
-                        sort.direction === 'asc' 
-                          ? <span>▲</span>
-                          : <span>▼</span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer"
-                    onClick={() => setSort({
-                      field: 'subject',
-                      direction: sort.field === 'subject' && sort.direction === 'desc' ? 'asc' : 'desc'
-                    })}
-                    title="انقر للترتيب"
-                  >
-                    <div className="flex items-center gap-1 justify-start">
-                      <span>الموضوع</span>
-                      {sort.field === 'subject' && (
-                        sort.direction === 'asc' 
-                          ? <span>▲</span>
-                          : <span>▼</span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">صادر إلى</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">محرر الخطاب</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">القالب</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">الحالة</th>
-                  <th 
-                    className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer"
-                    onClick={() => setSort({
-                      field: 'created_at',
-                      direction: sort.field === 'created_at' && sort.direction === 'desc' ? 'asc' : 'desc'
-                    })}
-                    title="انقر للترتيب"
-                  >
-                    <div className="flex items-center gap-1 justify-start">
-                      <span>تاريخ الإنشاء</span>
-                      {sort.field === 'created_at' && (
-                        sort.direction === 'asc' 
-                          ? <span>▲</span>
-                          : <span>▼</span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+            <div className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+              <div className="bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-800 grid grid-cols-7 py-4">
+                <div 
+                  className="px-4 text-center text-xs font-medium cursor-pointer select-none"
+                  onClick={() => setSort({
+                    field: 'number',
+                    direction: sort.field === 'number' && sort.direction === 'desc' ? 'asc' : 'desc'
+                  })}
+                  title="انقر للترتيب"
+                >
+                  <div className="flex items-center gap-1 justify-center">
+                    <span className="font-bold text-primary">رقم الخطاب</span>
+                    {sort.field === 'number' && (
+                      sort.direction === 'asc' 
+                        ? <SortAsc className="h-3 w-3" />
+                        : <SortDesc className="h-3 w-3" />
+                    )}
+                  </div>
+                </div>
+                <div 
+                  className="px-4 text-center text-xs font-medium cursor-pointer select-none border-r dark:border-gray-700"
+                  onClick={() => setSort({
+                    field: 'subject',
+                    direction: sort.field === 'subject' && sort.direction === 'desc' ? 'asc' : 'desc'
+                  })}
+                  title="انقر للترتيب"
+                >
+                  <div className="flex items-center gap-1 justify-center">
+                    <span className="font-bold text-primary">الموضوع</span>
+                    {sort.field === 'subject' && (
+                      sort.direction === 'asc' 
+                        ? <SortAsc className="h-3 w-3" />
+                        : <SortDesc className="h-3 w-3" />
+                    )}
+                  </div>
+                </div>
+                <div className="px-4 text-center text-xs font-medium select-none border-r dark:border-gray-700">
+                  <span className="font-bold text-primary">صادر إلى</span>
+                </div>
+                <div className="px-4 text-center text-xs font-medium select-none border-r dark:border-gray-700">
+                  <span className="font-bold text-primary">محرر الخطاب</span>
+                </div>
+                <div className="px-4 text-center text-xs font-medium select-none border-r dark:border-gray-700">
+                  <span className="font-bold text-primary">القالب</span>
+                </div>
+                <div className="px-4 text-center text-xs font-medium select-none border-r dark:border-gray-700">
+                  <span className="font-bold text-primary">الحالة</span>
+                </div>
+                <div 
+                  className="px-4 text-center text-xs font-medium cursor-pointer select-none border-r dark:border-gray-700"
+                  onClick={() => setSort({
+                    field: 'created_at',
+                    direction: sort.field === 'created_at' && sort.direction === 'desc' ? 'asc' : 'desc'
+                  })}
+                  title="انقر للترتيب"
+                >
+                  <div className="flex items-center gap-1 justify-center">
+                    <span className="font-bold text-primary">تاريخ الإنشاء</span>
+                    {sort.field === 'created_at' && (
+                      sort.direction === 'asc' 
+                        ? <SortAsc className="h-3 w-3" />
+                        : <SortDesc className="h-3 w-3" />
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
                 {filteredLetters.map((letter) => (
                   <tr key={letter.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
                     <td className="px-4 py-4 text-sm whitespace-nowrap">
@@ -652,63 +658,76 @@ export function LettersList() {
                     </td>
                     <td className="px-4 py-4 text-sm max-w-[150px]">
                       <p className="truncate" title={letter.letter_templates?.name}>
+                  <div key={letter.id} className="grid grid-cols-7 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                    <div className="px-4 flex items-center justify-center border-r dark:border-gray-700">
+                      <div className="font-mono bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg text-center">
+                        {letter.number ?? '-'}/{letter.year ?? '-'}
+                      </div>
+                    </div>
+                    <div className="px-4 flex items-center border-r dark:border-gray-700">
+                      <div className="truncate font-medium text-gray-900 dark:text-white">
+                        {letter.content?.subject ?? '-'}
+                      </div>
+                    </div>
+                    <div className="px-4 flex items-center border-r dark:border-gray-700">
+                      <div className="truncate text-gray-700 dark:text-gray-300">
+                        {letter.content?.to ?? '-'}
+                      </div>
+                    </div>
+                    <div className="px-4 flex items-center justify-center border-r dark:border-gray-700">
+                      <div className="bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg text-center">
+                        {letter.creator_name ?? '-'}
+                      </div>
+                    </div>
+                    <div className="px-4 flex items-center justify-center border-r dark:border-gray-700">
+                      <div className="truncate max-w-[150px] text-gray-700 dark:text-gray-300">
                         {letter.letter_templates?.name ?? 'غير محدد'}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4 text-sm">
-                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                      </div>
+                    </div>
+                    <div className="px-4 flex items-center justify-center border-r dark:border-gray-700">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                         letter.status === 'completed'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
-                          : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                       }`}>
                         {letter.status === 'completed' ? 'مكتمل' : 'مسودة'}
                       </span>
-                    </td>
-                    <td className="px-4 py-4 text-sm whitespace-nowrap" title={new Date(letter.created_at).toLocaleString('ar')}>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                        <span>{moment(letter.created_at).format('iDD/iMM/iYYYY')}</span>
+                    </div>
+                    <div className="px-4 flex items-center justify-between border-r dark:border-gray-700">
+                      <div className="flex flex-col bg-gray-50 dark:bg-gray-800/50 px-3 py-1.5 rounded-lg">
+                        <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                          <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                          <span>{new Date(letter.created_at).toLocaleDateString('ar-SA')}</span>
+                        </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-center gap-x-1">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => navigate(`view/${letter.id}`)}
-                          className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                          className="p-1.5 text-gray-500 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                           title="معاينة"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        
                         <button
                           onClick={() => navigate(`edit/${letter.id}`)}
-                          className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                          className="p-1.5 text-gray-500 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                           title="تعديل"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
-                        
                         <button
-                          onClick={() => handleExportClick(letter)}
-                          className="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg"
-                          title="تصدير PDF"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </button>
-                        
-                        <button
-                          onClick={() => setShowDeleteConfirm(letter.id)}
-                          className="p-1.5 text-gray-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                          onClick={() => handleDelete(letter.id)}
+                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                           title="حذف"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
         </div>
       )}
