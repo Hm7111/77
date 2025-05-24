@@ -89,6 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
         
+       console.log('Loaded user data:', data);
+       
         // مهم: التحقق من حالة تنشيط المستخدم
         if (data && !data.is_active && data.role !== 'admin') {
           // إذا كان المستخدم غير نشط، قم بتسجيل الخروج وإعادة توجيهه إلى صفحة تسجيل الدخول
@@ -109,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+   staleTime: 1000 * 60 * 1, // 1 minute - reduce stale time to refresh more frequently
     cacheTime: 1000 * 60 * 30, // 30 minutes
     retry: 3
   })
