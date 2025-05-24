@@ -14,8 +14,8 @@ export function useApprovalDecisions() {
   /**
    * الموافقة على طلب
    */
-  const approveRequest = useCallback(async (data: ApprovalDecisionData) => {
-    if (!data.requestId) {
+  const approveRequest = useCallback(async (requestId: string, comments?: string, signatureId?: string) => {
+    if (!requestId) {
       toast({
         title: 'خطأ',
         description: 'معرف طلب الموافقة غير صالح',
@@ -29,7 +29,7 @@ export function useApprovalDecisions() {
     
     try {
       // التأكد من وجود توقيع
-      if (!data.signatureId) {
+      if (!signatureId) {
         const { data: user } = await supabase.auth.getUser();
         const userId = user.user?.id;
         
@@ -42,19 +42,19 @@ export function useApprovalDecisions() {
             .limit(1);
             
           if (signatures && signatures.length > 0) {
-            data.signatureId = signatures[0].id;
+            signatureId = signatures[0].id;
           }
         }
       }
       
-      if (!data.signatureId) {
+      if (!signatureId) {
         throw new Error('لم يتم العثور على توقيع. يرجى إضافة توقيع أولاً.');
       }
       
       const { error } = await supabase.rpc('approve_letter_with_signature', {
-        p_request_id: data.requestId,
-        p_signature_id: data.signatureId,
-        p_comments: data.comments || null
+        p_request_id: requestId,
+        p_signature_id: signatureId,
+        p_comments: comments || null
       });
 
       if (error) throw error;
@@ -86,8 +86,8 @@ export function useApprovalDecisions() {
   /**
    * رفض طلب
    */
-  const rejectRequest = useCallback(async (data: RejectionData) => {
-    if (!data.requestId) {
+  const rejectRequest = useCallback(async (requestId: string, reason: string) => {
+    if (!requestId) {
       toast({
         title: 'خطأ',
         description: 'معرف طلب الموافقة غير صالح',
@@ -96,7 +96,7 @@ export function useApprovalDecisions() {
       return false;
     }
 
-    if (!data.reason || data.reason.trim() === '') {
+    if (!reason || reason.trim() === '') {
       toast({
         title: 'خطأ',
         description: 'يجب تحديد سبب الرفض',
@@ -110,8 +110,8 @@ export function useApprovalDecisions() {
     
     try {
       const { error } = await supabase.rpc('reject_letter', {
-        p_request_id: data.requestId,
-        p_reason: data.reason,
+        p_request_id: requestId,
+        p_reason: reason,
       });
 
       if (error) throw error;
