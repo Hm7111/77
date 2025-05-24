@@ -71,7 +71,7 @@ export function Dashboard() {
     ]);
   }, []);
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['letters-stats', period, dbUser?.id, selectedBranch],
     enabled: !!dbUser?.id,
     queryFn: async () => {
@@ -94,9 +94,21 @@ export function Dashboard() {
       
       // فلترة حسب الفرع إذا كان محدداً
       if (selectedBranch) {
-        query = query.eq('user_id', supabase.rpc('get_users_in_branch', { branch_id_param: selectedBranch }));
+        // تعديل الاستعلام للحصول على المستخدمين في الفرع المحدد
+        const { data: branchUsers } = await supabase
+          .from('users')
+          .select('id')
+          .eq('branch_id', selectedBranch);
+          
+        if (branchUsers && branchUsers.length > 0) {
+          const userIds = branchUsers.map(user => user.id);
+          query = query.in('user_id', userIds);
+        }
       } else {
-        query = query.eq('user_id', dbUser?.id);
+        // إذا كان المستخدم مديراً، اعرض جميع الخطابات، وإلا اعرض خطابات المستخدم فقط
+        if (dbUser?.role !== 'admin') {
+          query = query.eq('user_id', dbUser?.id);
+        }
       }
       
       const { count: total, error: totalError } = await query;
@@ -105,9 +117,21 @@ export function Dashboard() {
       let recentQuery = supabase.from('letters').select('*', { count: 'exact', head: true });
       
       if (selectedBranch) {
-        recentQuery = recentQuery.eq('user_id', supabase.rpc('get_users_in_branch', { branch_id_param: selectedBranch }));
+        // تعديل الاستعلام للحصول على المستخدمين في الفرع المحدد
+        const { data: branchUsers } = await supabase
+          .from('users')
+          .select('id')
+          .eq('branch_id', selectedBranch);
+          
+        if (branchUsers && branchUsers.length > 0) {
+          const userIds = branchUsers.map(user => user.id);
+          recentQuery = recentQuery.in('user_id', userIds);
+        }
       } else {
-        recentQuery = recentQuery.eq('user_id', dbUser?.id);
+        // إذا كان المستخدم مديراً، اعرض جميع الخطابات، وإلا اعرض خطابات المستخدم فقط
+        if (dbUser?.role !== 'admin') {
+          recentQuery = recentQuery.eq('user_id', dbUser?.id);
+        }
       }
       
       const { count: recent, error: recentError } = await recentQuery.gte('created_at', startDate.toISOString());
@@ -116,9 +140,21 @@ export function Dashboard() {
       let draftQuery = supabase.from('letters').select('*', { count: 'exact', head: true });
       
       if (selectedBranch) {
-        draftQuery = draftQuery.eq('user_id', supabase.rpc('get_users_in_branch', { branch_id_param: selectedBranch }));
+        // تعديل الاستعلام للحصول على المستخدمين في الفرع المحدد
+        const { data: branchUsers } = await supabase
+          .from('users')
+          .select('id')
+          .eq('branch_id', selectedBranch);
+          
+        if (branchUsers && branchUsers.length > 0) {
+          const userIds = branchUsers.map(user => user.id);
+          draftQuery = draftQuery.in('user_id', userIds);
+        }
       } else {
-        draftQuery = draftQuery.eq('user_id', dbUser?.id);
+        // إذا كان المستخدم مديراً، اعرض جميع الخطابات، وإلا اعرض خطابات المستخدم فقط
+        if (dbUser?.role !== 'admin') {
+          draftQuery = draftQuery.eq('user_id', dbUser?.id);
+        }
       }
       
       const { count: draft, error: draftError } = await draftQuery.eq('status', 'draft');
@@ -129,11 +165,12 @@ export function Dashboard() {
         recent: recent ?? 0,
         draft: draft ?? 0
       };
-    }
+    },
+    refetchInterval: 30000 // إعادة تحميل البيانات كل 30 ثانية
   });
 
   // آخر الخطابات
-  const { data: recentLetters, isLoading: lettersLoading } = useQuery({
+  const { data: recentLetters, isLoading: lettersLoading, refetch: refetchLetters } = useQuery({
     queryKey: ['recent-letters', dbUser?.id, selectedBranch],
     enabled: !!dbUser?.id,
     queryFn: async () => {
@@ -153,9 +190,21 @@ export function Dashboard() {
         `);
         
       if (selectedBranch) {
-        query = query.eq('user_id', supabase.rpc('get_users_in_branch', { branch_id_param: selectedBranch }));
+        // تعديل الاستعلام للحصول على المستخدمين في الفرع المحدد
+        const { data: branchUsers } = await supabase
+          .from('users')
+          .select('id')
+          .eq('branch_id', selectedBranch);
+          
+        if (branchUsers && branchUsers.length > 0) {
+          const userIds = branchUsers.map(user => user.id);
+          query = query.in('user_id', userIds);
+        }
       } else {
-        query = query.eq('user_id', dbUser?.id);
+        // إذا كان المستخدم مديراً، اعرض جميع الخطابات، وإلا اعرض خطابات المستخدم فقط
+        if (dbUser?.role !== 'admin') {
+          query = query.eq('user_id', dbUser?.id);
+        }
       }
       
       const { data, error } = await query
@@ -164,8 +213,17 @@ export function Dashboard() {
 
       if (error) throw error;
       return data || [];
-    }
+    },
+    refetchInterval: 30000 // إعادة تحميل البيانات كل 30 ثانية
   });
+  
+  // تحديث البيانات عند تغيير الفرع
+  useEffect(() => {
+    if (selectedBranch !== null) {
+      refetchStats();
+      refetchLetters();
+    }
+  }, [selectedBranch, refetchStats, refetchLetters]);
   
   // حساب الإحصائيات للرسم البياني (محاكاة)
   const chartData = {

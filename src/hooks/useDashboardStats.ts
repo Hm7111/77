@@ -143,6 +143,7 @@ export function useDashboardStats(period: 'week' | 'month' | 'year' = 'month', b
         return { total: 0, recent: 0, draft: 0 }
       }
     },
+    refetchInterval: 30000, // إعادة تحميل البيانات كل 30 ثانية
     enabled: !!dbUser?.id
   })
 

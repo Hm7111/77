@@ -34,11 +34,22 @@ export function useLetters() {
       }
       setIsOffline(false)
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('letters')
-        .select('*, letter_templates(id, name, image_url)') // تحسين: تحديد الحقول المطلوبة فقط
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
+        .select('*, letter_templates(id, name, image_url)'); // تحسين: تحديد الحقول المطلوبة فقط
+      
+      // إذا كان المستخدم مديراً، اعرض جميع الخطابات، وإلا اعرض خطابات المستخدم فقط
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user?.id)
+        .single();
+      
+      if (!userData || userData.role !== 'admin') {
+        query = query.eq('user_id', user?.id);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) throw error
       
@@ -59,9 +70,10 @@ export function useLetters() {
     cacheTime: LETTERS_CACHE_TIME,
     retry: 3,
     retryDelay: RETRY_INTERVAL,
-    refetchOnWindowFocus: false, // تحسين: تقليل عمليات إعادة الجلب غير الضرورية
+    refetchOnWindowFocus: true, // تحسين: تمكين إعادة الجلب عند التركيز لضمان تحديث البيانات
     refetchOnReconnect: true,
     refetchOnMount: true,
+    refetchInterval: 30000, // إعادة تحميل البيانات كل 30 ثانية
     onError: (error) => {
       console.error('Error fetching letters:', error)
       
