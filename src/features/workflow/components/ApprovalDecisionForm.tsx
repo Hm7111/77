@@ -5,6 +5,7 @@ import { ApprovalRequest, Signature } from '../../../types/database';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../lib/auth';
 import { useToast } from '../../../hooks/useToast';
+import { useDiagnostics } from '../../../hooks/useDiagnostics';
 
 interface ApprovalDecisionFormProps {
   request: ApprovalRequest;
@@ -19,6 +20,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
   const { approveRequest, rejectRequest, isLoading } = useApprovalDecisions();
   const { dbUser } = useAuth();
   const { toast } = useToast();
+  const { diagnoseError } = useDiagnostics();
   
   const [tab, setTab] = useState<'approve' | 'reject'>('approve');
   const [comments, setComments] = useState('');
@@ -61,7 +63,7 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
   // معالجة الموافقة
   async function handleApprove() {
     if (!selectedSignatureId) {
-      console.log('No signature selected');
+      console.error('No signature selected');
       toast({
         title: 'خطأ',
         description: 'يرجى اختيار توقيع أو رفع توقيع جديد',
@@ -74,7 +76,8 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
     const requestId = request.id || (request as any).request_id;
     
     if (!requestId) {
-      console.error('Invalid request ID:', request);
+      const error = new Error('معرف طلب الموافقة غير صالح');
+      diagnoseError(error);
       toast({
         title: 'خطأ',
         description: 'معرف طلب الموافقة غير صالح',
@@ -83,22 +86,26 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    const success = await approveRequest({
-      requestId: requestId,
-      comments,
-      signatureId: selectedSignatureId
-    });
-    
-    if (success) {
-      onClose();
-      if (onSuccess) onSuccess();
+    try {
+      const success = await approveRequest({
+        requestId: requestId,
+        comments,
+        signatureId: selectedSignatureId
+      });
+      
+      if (success) {
+        onClose();
+        if (onSuccess) onSuccess();
+      }
+    } catch (error) {
+      diagnoseError(error);
     }
   }
   
   // معالجة الرفض
   async function handleReject() {
     if (!rejectionReason.trim()) {
-      console.log('No rejection reason provided');
+      console.error('No rejection reason provided');
       toast({
         title: 'خطأ',
         description: 'يرجى إدخال سبب الرفض',
@@ -111,7 +118,8 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
     const requestId = request.id || (request as any).request_id;
     
     if (!requestId) {
-      console.error('Invalid request ID:', request);
+      const error = new Error('معرف طلب الموافقة غير صالح');
+      diagnoseError(error);
       toast({
         title: 'خطأ',
         description: 'معرف طلب الموافقة غير صالح',
@@ -120,14 +128,18 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    const success = await rejectRequest({
-      requestId: requestId,
-      reason: rejectionReason
-    });
-    
-    if (success) {
-      onClose();
-      if (onSuccess) onSuccess();
+    try {
+      const success = await rejectRequest({
+        requestId: requestId,
+        reason: rejectionReason
+      });
+      
+      if (success) {
+        onClose();
+        if (onSuccess) onSuccess();
+      }
+    } catch (error) {
+      diagnoseError(error);
     }
   }
   

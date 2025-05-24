@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useToast } from '../../../hooks/useToast';
 import { ApprovalDecisionData, RejectionData, ApprovalLogWithDetails } from '../types';
+import { useDiagnostics } from '../../../hooks/useDiagnostics';
 
 /**
  * هوك لإدارة قرارات الموافقة (الموافقة أو الرفض)
@@ -10,6 +11,7 @@ export function useApprovalDecisions() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { diagnoseError } = useDiagnostics();
 
   /**
    * الموافقة على طلب
@@ -68,6 +70,14 @@ export function useApprovalDecisions() {
       });
 
       if (error) throw error;
+      
+      // تحديث حالة الخطاب في الواجهة
+      try {
+        // يمكن إضافة تحديث للواجهة هنا إذا لزم الأمر
+      } catch (updateError) {
+        console.warn('Error updating UI after approval:', updateError);
+        // لا نريد إيقاف العملية إذا فشل تحديث الواجهة
+      }
 
       toast({
         title: 'تمت الموافقة',
@@ -78,6 +88,7 @@ export function useApprovalDecisions() {
       return true;
     } catch (error) {
       console.error('Error approving letter:', error);
+      diagnoseError(error);
       const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء الموافقة على الخطاب';
       setError(errorMessage);
       
@@ -132,6 +143,14 @@ export function useApprovalDecisions() {
       });
 
       if (error) throw error;
+      
+      // تحديث حالة الخطاب في الواجهة
+      try {
+        // يمكن إضافة تحديث للواجهة هنا إذا لزم الأمر
+      } catch (updateError) {
+        console.warn('Error updating UI after rejection:', updateError);
+        // لا نريد إيقاف العملية إذا فشل تحديث الواجهة
+      }
 
       toast({
         title: 'تم الرفض',
@@ -142,6 +161,7 @@ export function useApprovalDecisions() {
       return true;
     } catch (error) {
       console.error('Error rejecting letter:', error);
+      diagnoseError(error);
       const errorMessage = error instanceof Error ? error.message : 'حدث خطأ أثناء رفض الخطاب';
       setError(errorMessage);
       
