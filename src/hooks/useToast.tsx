@@ -1,6 +1,7 @@
 import { useState, useCallback, ReactNode, useEffect } from 'react'
 import { Toast, ToastContainer } from '../components/ui/Toast'
 import { createRoot } from 'react-dom/client'
+import { toast as libToast } from '../lib/toast'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -133,14 +134,42 @@ function ensureToastProvider() {
 export function useToast() {
   ensureToastProvider()
   
-  const toast = useCallback((options: ToastOptions) => {
-    if (!addToastFn) {
-      console.error('Toast provider not initialized')
-      return ''
-    }
-    
-    return addToastFn(options)
-  }, [])
+  const addToast = useCallback(
+    ({
+      title,
+      description,
+      type = 'info',
+      duration = 5000,
+    }: {
+      title: string
+      description?: string
+      type?: ToastType
+      duration?: number
+    }) => {
+      // تخزين دالة إضافة التنبيه في النافذة للاستخدام من خارج الهوك
+      window.showToast = addToast;
+      
+      const id = `toast-${++toastCounter}`
+      setToasts(prev => [...prev, { id, title, description, type, duration }])
+      
+      if (duration !== Infinity) {
+        setTimeout(() => {
+          removeToast(id)
+        }, duration + 300)
+      }
+      
+      return id
+    },
+    [removeToast]
+  )
 
-  return { toast }
+  // تصدير دالة إضافة التنبيه للاستخدام من خارج الهوك
+  useEffect(() => {
+    window.showToast = addToast;
+    return () => {
+      window.showToast = undefined;
+    };
+  }, [addToast]);
+
+  return { toast: addToast }
 }
