@@ -282,6 +282,11 @@ export function Header() {
                 <span className="hidden sm:block font-medium truncate max-w-[100px]">
                   {dbUser?.full_name || 'المستخدم'}
                 </span>
+                {dbUser?.branch?.code && (
+                  <span className="hidden sm:inline-block text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full ml-1">
+                    {dbUser.branch.code}
+                  </span>
+                )}
               </button>
               
               {showUserMenu && (
@@ -289,6 +294,17 @@ export function Header() {
                   <div className="p-3 border-b dark:border-gray-800">
                     <p className="font-medium">{dbUser?.full_name || 'المستخدم'}</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">{dbUser?.email}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 inline-block px-2 py-0.5 rounded-full">
+                        {dbUser?.role === 'admin' ? 'مدير' : 'مستخدم'}
+                      </p>
+                      {dbUser?.branch && (
+                        <p className="text-xs bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 inline-block px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Building className="h-3 w-3" />
+                          {dbUser.branch.name} ({dbUser.branch.code})
+                        </p>
+                      )}
+                    </div>
                     <p className="text-xs mt-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 inline-block px-2 py-0.5 rounded-full">
                       {dbUser?.role === 'admin' ? 'مدير' : 'مستخدم'}
                     </p>

@@ -271,7 +271,16 @@ export function Users() {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.full_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center gap-2">
+                        <span>{user.full_name}</span>
+                        {user.branches && (
+                          <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                            {user.branches.code}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {user.branches ? (
