@@ -21,7 +21,7 @@ export function useApprovalDecisions() {
         description: 'معرف طلب الموافقة غير صالح',
         type: 'error',
       });
-      throw new Error('معرف طلب الموافقة غير صالح');
+      return false;
     }
 
     setIsLoading(true);
@@ -77,7 +77,7 @@ export function useApprovalDecisions() {
         type: 'error',
       });
       
-      throw error;
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +93,7 @@ export function useApprovalDecisions() {
         description: 'معرف طلب الموافقة غير صالح',
         type: 'error',
       });
-      throw new Error('معرف طلب الموافقة غير صالح');
+      return false;
     }
 
     if (!data.reason || data.reason.trim() === '') {
@@ -102,7 +102,7 @@ export function useApprovalDecisions() {
         description: 'يجب تحديد سبب الرفض',
         type: 'error',
       });
-      throw new Error('يجب تحديد سبب الرفض');
+      return false;
     }
 
     setIsLoading(true);
@@ -134,7 +134,7 @@ export function useApprovalDecisions() {
         type: 'error',
       });
       
-      throw error;
+      return false;
     } finally {
       setIsLoading(false);
     }
