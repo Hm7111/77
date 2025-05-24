@@ -63,22 +63,32 @@ export function ViewableLetterEditor() {
 
   async function loadSignature(signatureId: string) {
     try {
+      // Remove .single() to handle cases where zero or multiple rows are returned
       const { data, error } = await supabase
         .from('signatures')
         .select('signature_url')
-        .eq('id', signatureId)
-        .single();
+        .eq('id', signatureId);
         
       if (error) {
         console.error('Error loading signature:', error);
         return;
       }
       
-      if (data) {
-        setSignatureUrl(data.signature_url);
+      if (data && data.length > 0) {
+        // If we have data, use the first signature
+        setSignatureUrl(data[0].signature_url);
+        
+        // Log a warning if multiple signatures were found
+        if (data.length > 1) {
+          console.warn('Multiple signatures found for ID:', signatureId, 'Using the first one.');
+        }
+      } else {
+        console.log('No signature found for ID:', signatureId);
+        setSignatureUrl(null); // Reset the signature URL if none found
       }
     } catch (error) {
       console.error('Error loading signature:', error);
+      setSignatureUrl(null); // Reset on error
     }
   }
 
