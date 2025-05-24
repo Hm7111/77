@@ -14,6 +14,9 @@ export interface ExportOptions {
   withTemplate?: boolean;
 }
 
+// تخزين مؤقت للصور
+const imageCache = new Map<string, HTMLImageElement>();
+
 /**
  * خدمة تصدير الخطابات بجودة عالية
  * تستخدم pdf-lib للإنشاء المباشر لملفات PDF بجودة عالية مع دعم كامل للغة العربية
@@ -29,7 +32,7 @@ class PDFExportService {
     // الخيارات الافتراضية
     const filename = options.filename || `خطاب-${letter.number}-${letter.year}.pdf`;
     const scale = options.scale || 4.0; // زيادة الدقة لتحسين جودة الصورة
-    const quality = options.quality || 0.99; // جودة عالية جداً
+    const quality = options.quality || 0.99; // أعلى جودة ممكنة
     const showProgress = options.showProgress || (() => {});
     const withTemplate = options.withTemplate !== undefined ? options.withTemplate : true;
     
@@ -77,7 +80,6 @@ class PDFExportService {
         
         // إنشاء PDF باستخدام pdf-lib
         const pdfDoc = await PDFDocument.create();
-        pdfDoc.registerFontkit(fontkit);
         
         // إضافة صفحة A4
         const page = pdfDoc.addPage([this.PAGE_WIDTH, this.PAGE_HEIGHT]);
@@ -105,10 +107,7 @@ class PDFExportService {
         showProgress(0.9);
         
         // حفظ المستند بدقة عالية
-        const pdfBytes = await pdfDoc.save({
-          useObjectStreams: true,
-          addDefaultPage: false
-        });
+        const pdfBytes = await pdfDoc.save();
         
         // حفظ الملف للمستخدم
         this.saveFile(pdfBytes, filename);
@@ -146,10 +145,19 @@ class PDFExportService {
    * تحميل الصورة مسبقاً
    */
   private async preloadImage(url: string): Promise<HTMLImageElement> {
+    // التحقق من التخزين المؤقت أولاً
+    if (imageCache.has(url)) {
+      return imageCache.get(url) as HTMLImageElement;
+    }
+    
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
+      img.onload = () => {
+        // إضافة الصورة للتخزين المؤقت
+        imageCache.set(url, img);
+        resolve(img);
+      };
       img.onerror = reject;
       // تحسين جودة الصورة
       img.style.imageRendering = 'high-quality';
@@ -176,7 +184,7 @@ class PDFExportService {
     // انتظار تحميل الخطوط
     await document.fonts.ready;
     // انتظار إضافي للتأكد من تحميل الخطوط بشكل كامل
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
 
   /**
@@ -188,10 +196,17 @@ class PDFExportService {
     
     // الحصول على موضع QR من القالب أو استخدام القيم الافتراضية
     const qrPosition = templateData?.qr_position || {
-      x: null,
-      y: null,
+      x: 40,
+      y: 760,
       size: 80,
       alignment: 'right'
+    };
+    
+    // الحصول على مواضع العناصر المخصصة من القالب
+    const letterElements = templateData?.letter_elements || {
+      letterNumber: { x: 85, y: 25, width: 32, alignment: 'right', enabled: true },
+      letterDate: { x: 40, y: 60, width: 120, alignment: 'center', enabled: true },
+      signature: { x: 40, y: 700, width: 150, height: 80, alignment: 'center', enabled: true }
     };
     
     // إنشاء حاوية الخطاب
@@ -211,29 +226,22 @@ class PDFExportService {
     `;
     
     // إضافة صورة القالب إذا كان مطلوباً
-    if (withTemplate && templateData) {
-      const backgroundImg = document.createElement('img');
-      backgroundImg.crossOrigin = 'anonymous';
-      backgroundImg.src = templateData.image_url;
-      backgroundImg.style.cssText = `
+    if (withTemplate && templateData?.image_url) {
+      // استخدام عنصر الخلفية بدلاً من استخدام الخلفية المباشرة لتجنب مشاكل التوافق
+      const bgDiv = document.createElement('div');
+      bgDiv.style.cssText = `
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        background-image: url(${templateData.image_url});
+        background-size: 100% 100%;
+        background-position: center;
+        background-repeat: no-repeat;
         z-index: 0;
-        image-rendering: high-quality;
-        image-rendering: -webkit-optimize-contrast;
       `;
-      container.appendChild(backgroundImg);
-      
-      // تحميل الصورة قبل الاستمرار
-      await new Promise<void>((resolve, reject) => {
-        backgroundImg.onload = () => resolve();
-        backgroundImg.onerror = () => reject(new Error('فشل تحميل صورة القالب'));
-        if (backgroundImg.complete) resolve();
-      });
+      container.appendChild(bgDiv);
     }
     
     // طبقة المحتوى
@@ -248,43 +256,45 @@ class PDFExportService {
       direction: rtl;
     `;
     
-    // رقم الخطاب
-    const numberElement = document.createElement('div');
-    numberElement.style.cssText = `
-      position: absolute;
-      top: 25px;
-      left: 85px;
-      width: 40px;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 600;
-      color: #000;
-      font-family: 'Cairo', sans-serif;
-      transform: translateY(-5px); /* تصحيح موضع النص للأعلى */
-    `;
-    numberElement.textContent = letter.number?.toString() || '';
-    contentLayer.appendChild(numberElement);
+    // مرجع الخطاب - استخدام الموضع المخصص
+    if (letterElements.letterNumber.enabled) {
+      const numberDiv = document.createElement('div');
+      numberDiv.style.cssText = `
+        position: absolute;
+        top: ${letterElements.letterNumber.y}px;
+        left: ${letterElements.letterNumber.x}px;
+        width: ${letterElements.letterNumber.width}px;
+        text-align: ${letterElements.letterNumber.alignment};
+        font-size: 14px;
+        font-weight: 600;
+        direction: ltr;
+        font-family: 'Cairo', sans-serif;
+      `;
+      numberDiv.textContent = letter.letter_reference || `${letter.branch_code || ''}-${letter.number}/${letter.year}`;
+      contentLayer.appendChild(numberDiv);
+    }
     
-    // تاريخ الخطاب
-    const dateElement = document.createElement('div');
-    dateElement.style.cssText = `
-      position: absolute;
-      top: 60px;
-      left: 40px;
-      width: 120px;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 600;
-      color: #000;
-      font-family: 'Cairo', sans-serif;
-      transform: translateY(-5px); /* تصحيح موضع النص للأعلى */
-    `;
-    dateElement.textContent = letter.content.date || '';
-    contentLayer.appendChild(dateElement);
-    
+    // تاريخ الخطاب - استخدام الموضع المخصص
+    if (letterElements.letterDate.enabled) {
+      const dateDiv = document.createElement('div');
+      dateDiv.style.cssText = `
+        position: absolute;
+        top: ${letterElements.letterDate.y}px;
+        left: ${letterElements.letterDate.x}px;
+        width: ${letterElements.letterDate.width}px;
+        text-align: ${letterElements.letterDate.alignment};
+        font-size: 14px;
+        font-weight: 600;
+        direction: ltr;
+        font-family: 'Cairo', sans-serif;
+      `;
+      dateDiv.textContent = letter.content.date || '';
+      contentLayer.appendChild(dateDiv);
+    }
+
     // محتوى الخطاب
-    const bodyElement = document.createElement('div');
-    bodyElement.style.cssText = `
+    const content = document.createElement('div');
+    content.style.cssText = `
       position: absolute;
       top: 120px;
       right: 35px;
@@ -295,36 +305,14 @@ class PDFExportService {
       line-height: ${letter.content.lineHeight || 1.5};
       text-align: right;
       direction: rtl;
-      color: #000;
       font-family: 'Cairo', sans-serif;
       white-space: pre-wrap;
       word-break: break-word;
       overflow-wrap: break-word;
-      transform: translateY(-5px); /* تصحيح موضع النص للأعلى */
+      color: #000;
     `;
-    
-    // تعديل المحتوى للحفاظ على التنسيق المطابق
-    bodyElement.innerHTML = letter.content.body || '';
-    
-    // معالجة محاذاة النصوص بشكل صحيح
-    const paragraphs = bodyElement.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6');
-    paragraphs.forEach(p => {
-      // الحفاظ على المحاذاة الأصلية
-      if (p.style.textAlign) {
-        p.style.textAlign = p.style.textAlign;
-      }
-      
-      // تصحيح ارتفاع السطر
-      if (letter.content.lineHeight) {
-        p.style.lineHeight = letter.content.lineHeight.toString();
-      }
-      
-      // تصحيح المسافات
-      p.style.margin = '0';
-      p.style.padding = '0';
-    });
-    
-    contentLayer.appendChild(bodyElement);
+    content.innerHTML = letter.content.body || '';
+    contentLayer.appendChild(content);
     
     // رمز QR
     if (letter.verification_url || letter.content.verification_url) {
@@ -341,50 +329,93 @@ class PDFExportService {
         ${qrPosition?.x ? 'left: ' + qrPosition.x + 'px' : ''}
         text-align: center;
         z-index: 2;
-        transform: translateY(-5px); /* تصحيح موضع QR للأعلى */
       `;
       
-      const qrElement = document.createElement('div');
-      qrElement.style.cssText = `
-        width: ${qrPosition.size || 80}px;
-        height: ${qrPosition.size || 80}px;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+        `${window.location.origin}/verify/${verificationUrl}`
+      )}`;
+      
+      // تحميل صورة QR مسبقًا
+      await this.preloadImage(qrUrl);
+      
+      const qrImage = document.createElement('img');
+      qrImage.src = qrUrl;
+      qrImage.alt = 'رمز التحقق';
+      qrImage.style.cssText = `
+        width: ${qrPosition.size}px;
+        height: ${qrPosition.size}px;
         padding: 4px;
         background: white;
         border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
       `;
+      qrContainer.appendChild(qrImage);
       
-      const qrImage = document.createElement('img');
-      qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-        `${window.location.origin}/verify/${verificationUrl}`
-      )}`;
-      qrImage.alt = 'رمز التحقق';
-      qrImage.style.width = '100%';
-      qrImage.style.height = '100%';
-      
-      qrElement.appendChild(qrImage);
-      qrContainer.appendChild(qrElement);
-      
-      const qrLabel = document.createElement('div');
-      qrLabel.style.cssText = `
+      const qrText = document.createElement('div');
+      qrText.style.cssText = `
         font-size: 10px;
         color: #444;
         margin-top: 4px;
         font-family: 'Cairo', sans-serif;
       `;
-      qrLabel.textContent = 'رمز التحقق';
-      qrContainer.appendChild(qrLabel);
+      qrText.textContent = 'رمز التحقق';
+      qrContainer.appendChild(qrText);
       
       contentLayer.appendChild(qrContainer);
-      
-      // انتظار تحميل صورة QR
-      if (!qrImage.complete) {
-        await new Promise<void>((resolve) => {
-          qrImage.onload = () => resolve();
-          setTimeout(() => resolve(), 500); // حد أقصى للانتظار
-        });
+    }
+    
+    // إضافة التوقيع إذا كان الخطاب معتمداً
+    if (letter.signature_id && letter.workflow_status === 'approved' && letterElements.signature.enabled) {
+      try {
+        // استعلام للحصول على رابط التوقيع
+        const { data, error } = await supabase
+          .from('signatures')
+          .select('signature_url')
+          .eq('id', letter.signature_id)
+          .maybeSingle();
+        
+        if (data?.signature_url) {
+          const signatureContainer = document.createElement('div');
+          signatureContainer.style.cssText = `
+            position: absolute;
+            top: ${letterElements.signature.y}px;
+            left: ${letterElements.signature.x}px;
+            width: ${letterElements.signature.width}px;
+            height: ${letterElements.signature.height}px;
+            text-align: ${letterElements.signature.alignment};
+            z-index: 2;
+          `;
+          
+          // تحميل صورة التوقيع مسبقًا
+          await this.preloadImage(data.signature_url);
+          
+          const signatureImg = document.createElement('img');
+          signatureImg.src = data.signature_url;
+          signatureImg.alt = "توقيع المعتمد";
+          signatureImg.style.cssText = `
+            height: 80%;
+            max-width: 100%;
+            object-fit: contain;
+          `;
+          
+          signatureContainer.appendChild(signatureImg);
+          
+          // إضافة تسمية التوقيع
+          const signatureLabel = document.createElement('div');
+          signatureLabel.style.cssText = `
+            font-size: 10px;
+            color: #444;
+            margin-top: 4px;
+            font-family: 'Cairo', sans-serif;
+            font-weight: bold;
+          `;
+          signatureLabel.textContent = 'توقيع المعتمد';
+          signatureContainer.appendChild(signatureLabel);
+          
+          contentLayer.appendChild(signatureContainer);
+        }
+      } catch (err) {
+        console.warn('Error adding signature to PDF:', err);
+        // استمر بدون التوقيع إذا حدث خطأ
       }
     }
     
@@ -454,7 +485,7 @@ class PDFExportService {
     clonedDoc.head.appendChild(styleElement);
     
     // انتظار إضافي لتحميل الخطوط
-    return new Promise(resolve => setTimeout(resolve, 800));
+    return new Promise(resolve => setTimeout(resolve, 500));
   }
 
   /**
