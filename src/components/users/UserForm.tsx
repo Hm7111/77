@@ -18,8 +18,10 @@
       setPassword('');
       setIsActive(user.is_active !== false);
     } else {
-@@ .. @@
-  
+      resetForm();
+    }
+  }, [user]);
+ 
   // معالجة تقديم النموذج
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
