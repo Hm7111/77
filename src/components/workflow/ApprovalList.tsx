@@ -155,6 +155,16 @@ export function ApprovalList({ role }: ApprovalListProps) {
 
   // فتح نافذة اتخاذ القرار
   const openDecisionModal = (request: any) => {
+    // التحقق من وجود معرف طلب صالح
+    if (!request?.id) {
+      toast({
+        title: 'خطأ',
+        description: 'معرف طلب الموافقة غير صالح',
+        type: 'error',
+      });
+      return;
+    }
+    
     setSelectedRequest(request);
     setShowDecisionModal(true);
   };

@@ -69,15 +69,34 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    const success = await approveRequest({
-      requestId: request.id,
-      comments,
-      signatureId: selectedSignatureId
-    });
+    // التحقق من وجود معرف طلب صالح
+    if (!request?.id) {
+      toast({
+        title: 'خطأ',
+        description: 'معرف طلب الموافقة غير صالح',
+        type: 'error',
+      });
+      return;
+    }
     
-    if (success) {
-      onClose();
-      if (onSuccess) onSuccess();
+    try {
+      const success = await approveRequest({
+        requestId: request.id,
+        comments,
+        signatureId: selectedSignatureId
+      });
+      
+      if (success) {
+        onClose();
+        if (onSuccess) onSuccess();
+      }
+    } catch (error) {
+      console.error('Error approving request:', error);
+      toast({
+        title: 'خطأ',
+        description: error instanceof Error ? error.message : 'حدث خطأ أثناء الموافقة على الطلب',
+        type: 'error',
+      });
     }
   }
   
@@ -92,14 +111,33 @@ export function ApprovalDecisionForm({ request, onClose, onSuccess }: ApprovalDe
       return;
     }
     
-    const success = await rejectRequest({
-      requestId: request.id,
-      reason: rejectionReason
-    });
+    // التحقق من وجود معرف طلب صالح
+    if (!request?.id) {
+      toast({
+        title: 'خطأ',
+        description: 'معرف طلب الموافقة غير صالح',
+        type: 'error',
+      });
+      return;
+    }
     
-    if (success) {
-      onClose();
-      if (onSuccess) onSuccess();
+    try {
+      const success = await rejectRequest({
+        requestId: request.id,
+        reason: rejectionReason
+      });
+      
+      if (success) {
+        onClose();
+        if (onSuccess) onSuccess();
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      toast({
+        title: 'خطأ',
+        description: error instanceof Error ? error.message : 'حدث خطأ أثناء رفض الطلب',
+        type: 'error',
+      });
     }
   }
   

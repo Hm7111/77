@@ -15,7 +15,7 @@ interface ApprovalDecisionModalProps {
  * نافذة اتخاذ قرار بشأن طلب موافقة
  */
 export function ApprovalDecisionModal({ isOpen, onClose, request, onApprove, onReject }: ApprovalDecisionModalProps) {
-  if (!isOpen) return null;
+  if (!isOpen || !request?.id) return null;
 
   const handleSuccess = () => {
     if (request.status === 'approved' && onApprove) {
