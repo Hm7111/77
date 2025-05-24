@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { useWorkflow } from '../../hooks/useWorkflow';
 import { useToast } from '../../hooks/useToast';
 import { useQueryClient } from '@tanstack/react-query';
-import { ClipboardCheck, Clock, Search, CalendarClock, FileText, FileCheck, AlertCircle, RefreshCw } from 'lucide-react';
+import { ClipboardCheck, Clock, Search, Calendar, FileText, FileCheck, AlertCircle, RefreshCw, User, Filter, SortAsc, SortDesc, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { ApprovalRequestModal } from './ApprovalRequestModal';
 import { ApprovalDecisionModal } from './ApprovalDecisionModal';
 import { ViewLetterModal } from '../letters/ViewLetterModal';
 import { WorkflowStatus } from './WorkflowStatus';
 import { supabase } from '../../lib/supabase';
 import { Letter } from '../../types/database';
+import moment from 'moment-hijri';
 
 interface ApprovalListProps {
   role: 'requester' | 'approver';
@@ -21,6 +22,9 @@ export function ApprovalList({ role }: ApprovalListProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [approvals, setApprovals] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortField, setSortField] = useState<'created_at' | 'subject'>('created_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -29,6 +33,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
   const [viewLetterModalOpen, setViewLetterModalOpen] = useState(false);
   const [selectedLetterId, setSelectedLetterId] = useState<string | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   useEffect(() => {
     if (role === 'approver') {
@@ -134,7 +139,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
 
   // فلترة الطلبات بناءً على البحث
   const filteredApprovals = useMemo(() => {
-    return approvals.filter(approval => {
+    let filtered = approvals.filter(approval => {
       if (!searchTerm) return true;
       
       // البحث في الطلبات المعلقة (للمعتمدين)
@@ -150,6 +155,31 @@ export function ApprovalList({ role }: ApprovalListProps) {
         (approval.letters?.content?.subject && approval.letters.content.subject.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (approval.approver?.full_name && approval.approver.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
       );
+    });
+    
+    // تطبيق فلتر الحالة
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(approval => approval.status === statusFilter);
+    }
+    
+    // تطبيق الترتيب
+    return filtered.sort((a, b) => {
+      const fieldA = role === 'approver' 
+        ? (a.letter_subject || '') 
+        : (a.letters?.content?.subject || '');
+      const fieldB = role === 'approver' 
+        ? (b.letter_subject || '') 
+        : (b.letters?.content?.subject || '');
+      
+      if (sortField === 'subject') {
+        return sortDirection === 'asc' 
+          ? fieldA.localeCompare(fieldB) 
+          : fieldB.localeCompare(fieldA);
+      } else {
+        const dateA = new Date(a.created_at || a.requested_at).getTime();
+        const dateB = new Date(b.created_at || b.requested_at).getTime();
+        return sortDirection === 'asc' ? dateA - dateB : dateB - dateA;
+      }
     });
   }, [approvals, searchTerm, role]);
 
@@ -211,7 +241,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-        <div>
+        <div className="flex flex-col">
           <h2 className="text-xl font-semibold flex items-center gap-2">
             {role === 'approver' ? (
               <>
@@ -232,20 +262,29 @@ export function ApprovalList({ role }: ApprovalListProps) {
           </p>
         </div>
         
-        <div className="flex gap-2">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-grow md:flex-grow-0 md:min-w-[240px]">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
               type="text"
               placeholder="بحث في الطلبات..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-3 pr-10 py-2 border dark:border-gray-700 rounded-lg w-full"
+              className="w-full pl-3 pr-10 py-2 border dark:border-gray-700 rounded-lg"
             />
           </div>
+          
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="p-2.5 border dark:border-gray-700 rounded-lg flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800"
+            title="فلترة"
+          >
+            <Filter className="h-4 w-4 text-gray-500" />
+          </button>
+          
           <button
             onClick={() => (role === 'approver' ? loadPendingApprovals() : loadMyRequests())}
-            className="p-2.5 border dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2.5 border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
             title="تحديث"
           >
             <RefreshCw className="h-5 w-5" />
@@ -253,6 +292,66 @@ export function ApprovalList({ role }: ApprovalListProps) {
         </div>
       </div>
 
+      {/* أدوات الفلترة */}
+      {showFilters && (
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow border dark:border-gray-800 p-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">حالة الطلب</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full p-2 border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900"
+              >
+                <option value="all">جميع الحالات</option>
+                <option value="submitted">تم الإرسال</option>
+                <option value="under_review">قيد المراجعة</option>
+                <option value="approved">تمت الموافقة</option>
+                <option value="rejected">مرفوض</option>
+                <option value="finalized">نهائي</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">ترتيب حسب</label>
+              <select
+                value={`${sortField}-${sortDirection}`}
+                onChange={(e) => {
+                  const [field, direction] = e.target.value.split('-');
+                  setSortField(field as 'created_at' | 'subject');
+                  setSortDirection(direction as 'asc' | 'desc');
+                }}
+                className="w-full p-2 border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900"
+              >
+                <option value="created_at-desc">الأحدث أولاً</option>
+                <option value="created_at-asc">الأقدم أولاً</option>
+                <option value="subject-asc">الموضوع (أ-ي)</option>
+                <option value="subject-desc">الموضوع (ي-أ)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex justify-end mt-4 gap-2">
+            <button
+              onClick={() => {
+                setStatusFilter('all');
+                setSortField('created_at');
+                setSortDirection('desc');
+                setSearchTerm('');
+              }}
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
+            >
+              إعادة ضبط
+            </button>
+            <button
+              onClick={() => setShowFilters(false)}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+            >
+              تطبيق
+            </button>
+          </div>
+        </div>
+      )}
       {/* عرض السجلات */}
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
@@ -276,14 +375,14 @@ export function ApprovalList({ role }: ApprovalListProps) {
       ) : filteredApprovals.length === 0 ? (
         <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 p-8 text-center">
           {role === 'approver' ? (
-            <ClipboardCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <ClipboardCheck className="h-16 w-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
           ) : (
-            <FileCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <FileCheck className="h-16 w-16 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
           )}
-          <h3 className="text-lg font-medium mb-2">
+          <h3 className="text-xl font-bold mb-2">
             {searchTerm ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات موافقة'}
           </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4 max-w-md mx-auto">
+          <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
             {searchTerm 
               ? 'لم يتم العثور على طلبات تطابق معايير البحث. جرب استخدام كلمات مفتاحية أخرى.'
               : role === 'approver'
@@ -293,22 +392,47 @@ export function ApprovalList({ role }: ApprovalListProps) {
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-900/50">
-                <tr>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">الخطاب</th>
-                  {role === 'approver' ? (
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">المرسل</th>
-                  ) : (
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">المعتمد</th>
+          <div className="overflow-x-auto relative">
+            <div className="min-w-full">
+              <div className="bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-800 grid grid-cols-5 py-3">
+                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 cursor-pointer"
+                  onClick={() => {
+                    if (sortField === 'subject') {
+                      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                    } else {
+                      setSortField('subject');
+                      setSortDirection('asc');
+                    }
+                  }}
+                >
+                  <span>الخطاب</span>
+                  {sortField === 'subject' && (
+                    sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />
                   )}
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">تاريخ الطلب</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">الحالة</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                </div>
+                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400">
+                  {role === 'approver' ? 'المرسل' : 'المعتمد'}
+                </div>
+                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1 cursor-pointer"
+                  onClick={() => {
+                    if (sortField === 'created_at') {
+                      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                    } else {
+                      setSortField('created_at');
+                      setSortDirection('desc');
+                    }
+                  }}
+                >
+                  <span>تاريخ الطلب</span>
+                  {sortField === 'created_at' && (
+                    sortDirection === 'asc' ? <SortAsc className="h-3 w-3" /> : <SortDesc className="h-3 w-3" />
+                  )}
+                </div>
+                <div className="px-4 text-right text-xs font-medium text-gray-500 dark:text-gray-400">الحالة</div>
+                <div className="px-4 text-center text-xs font-medium text-gray-500 dark:text-gray-400">الإجراءات</div>
+              </div>
+              
+              <div className="divide-y divide-gray-200 dark:divide-gray-800">
                 {filteredApprovals.map((approval) => {
                   // تحديد البيانات بناءً على نوع القائمة
                   const letterSubject = role === 'approver' 
@@ -323,7 +447,7 @@ export function ApprovalList({ role }: ApprovalListProps) {
                     ? approval.requester_name
                     : approval.approver?.full_name;
                   
-                  const requestDate = new Date(approval.created_at).toLocaleDateString('ar-SA');
+                  const requestDate = approval.created_at || approval.requested_at;
                   
                   const letterId = role === 'approver'
                     ? approval.letter_id
@@ -332,67 +456,90 @@ export function ApprovalList({ role }: ApprovalListProps) {
                   // تحديد ID طلب الموافقة للمرجعية
                   const requestId = approval.request_id || approval.id;
                   
+                  // تحديد أيقونة الحالة
+                  const getStatusIcon = (status: string) => {
+                    switch(status) {
+                      case 'submitted': return <Clock className="h-4 w-4 text-blue-500" />;
+                      case 'under_review': return <Eye className="h-4 w-4 text-amber-500" />;
+                      case 'approved': return <CheckCircle className="h-4 w-4 text-green-500" />;
+                      case 'rejected': return <XCircle className="h-4 w-4 text-red-500" />;
+                      default: return <Clock className="h-4 w-4 text-gray-500" />;
+                    }
+                  };
+                  
                   return (
-                    <tr key={approval.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50">
-                      <td className="px-4 py-4">
-                        <div className="flex items-start gap-2">
-                          <FileText className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="font-medium">{letterSubject || 'غير معروف'}</p>
+                    <div key={approval.id} className="grid grid-cols-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                      <div className="px-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 mt-1">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <FileText className="h-5 w-5 text-primary" />
+                            </div>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-900 dark:text-white truncate">{letterSubject || 'غير معروف'}</p>
                             {letterNumber && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                رقم الخطاب: {letterNumber}
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1">
+                                <span className="font-mono">{letterNumber}</span>
                               </p>
                             )}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-4">
+                      </div>
+                      
+                      <div className="px-4 flex items-center">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                              <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
+                          <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                            <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                           </div>
-                          <span className="font-medium">{personName || 'غير معروف'}</span>
+                          <span className="font-medium text-gray-900 dark:text-white truncate">{personName || 'غير معروف'}</span>
                         </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-1">
-                          <CalendarClock className="h-4 w-4 text-gray-400" />
-                          <span>{requestDate}</span>
+                      </div>
+                      
+                      <div className="px-4 flex items-center">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                            <Calendar className="h-4 w-4 text-gray-400" />
+                            <span>{moment(requestDate).format('iYYYY/iM/iD')}</span>
+                          </div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            {new Date(requestDate).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
                         </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <WorkflowStatus status={approval.status} />
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center justify-center gap-2">
+                      </div>
+                      
+                      <div className="px-4 flex items-center">
+                        <div className="flex items-center gap-1.5">
+                          {getStatusIcon(approval.status)}
+                          <WorkflowStatus status={approval.status} />
+                        </div>
+                      </div>
+                      
+                      <div className="px-4 flex items-center justify-center">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleViewLetter(letterId, requestId)}
-                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full"
                             title="عرض الخطاب"
                           >
-                            <FileText className="h-4 w-4" />
+                            <Eye className="h-5 w-5" />
                           </button>
                           
                           {role === 'approver' && approval.status === 'submitted' && (
                             <button
                               onClick={() => openDecisionModal(approval)}
-                              className="p-1.5 text-primary hover:text-primary/80 hover:bg-primary/5 dark:hover:bg-primary/10 rounded"
+                              className="p-2 text-primary hover:text-primary/80 hover:bg-primary/5 dark:hover:bg-primary/10 rounded-full"
                               title="اتخاذ قرار"
                             >
-                              <ClipboardCheck className="h-4 w-4" />
+                              <ClipboardCheck className="h-5 w-5" />
                             </button>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
           </div>
         </div>
       )}

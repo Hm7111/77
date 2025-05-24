@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Eye, Download, FileText, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, Eye, Download, FileText, RefreshCw, AlertCircle, Calendar, User } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/useToast';
 import { Letter } from '../../types/database';
 import { exportToPDF } from '../../lib/pdf-export';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
+import moment from 'moment-hijri';
 
 interface ViewLetterModalProps {
   isOpen: boolean;
@@ -202,30 +203,31 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
   const templateData = letter?.template_snapshot || letter?.letter_templates;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center overflow-auto p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center overflow-auto p-4 backdrop-blur-sm" onClick={onClose}>
       <ErrorBoundary>
-        <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] flex flex-col shadow-xl" onClick={e => e.stopPropagation()}>
-          <div className="p-4 border-b dark:border-gray-800 flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="p-5 border-b dark:border-gray-800 flex items-center justify-between">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               {isLoading ? 'جاري تحميل الخطاب...' : letter ? `معاينة الخطاب ${letter.number}/${letter.year}` : 'معاينة الخطاب'}
             </h3>
             <button 
               onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded"
+              className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
           
-          <div className="flex-1 overflow-auto p-4">
+          <div className="flex-1 overflow-auto p-5">
             {isLoading ? (
-              <div className="flex justify-center items-center h-96">
-                <div className="animate-spin rounded-full h-10 w-10 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent"></div>
+              <div className="flex flex-col justify-center items-center h-96">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent mb-4"></div>
+                <p className="text-gray-500 dark:text-gray-400">جاري تحميل الخطاب...</p>
               </div>
             ) : error ? (
-              <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg text-center">
-                <div className="inline-block p-3 bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
+              <div className="bg-red-50 dark:bg-red-900/20 p-8 rounded-lg text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full mb-4">
                   <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-red-700 dark:text-red-300 mb-2">تعذر تحميل الخطاب</h3>
@@ -242,32 +244,51 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
               </div>
             ) : !letter ? (
               <div className="text-center py-16">
-                <p className="text-gray-600 dark:text-gray-400">لم يتم العثور على الخطاب</p>
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
+                  <FileText className="h-8 w-8 text-gray-400 dark:text-gray-600" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">لم يتم العثور على الخطاب</h3>
+                <p className="text-gray-600 dark:text-gray-400">الخطاب غير موجود أو تم حذفه</p>
               </div>
             ) : (
               <div>
-                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4">
-                  <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-gray-50 dark:bg-gray-800 p-5 rounded-lg mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">الموضوع</p>
-                      <p className="font-medium">{letter.content.subject || 'غير محدد'}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{letter.content.subject || 'غير محدد'}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">مرسل إلى</p>
-                      <p className="font-medium">{letter.content.to || 'غير محدد'}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{letter.content.to || 'غير محدد'}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">الرقم</p>
-                      <p className="font-medium">{letter.number}/{letter.year}</p>
+                      <p className="font-medium text-gray-900 dark:text-white font-mono">{letter.number}/{letter.year}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">التاريخ</p>
-                      <p className="font-medium">{letter.content.date || new Date(letter.created_at).toLocaleDateString('ar')}</p>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {letter.content.date || moment(letter.created_at).format('iYYYY/iM/iD')}
+                        </p>
+                      </div>
                     </div>
+                    
+                    {letter.creator_name && (
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">المنشئ</p>
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <p className="font-medium text-gray-900 dark:text-white">{letter.creator_name}</p>
+                      </div>
+                    </div>
+                    )}
                   </div>
                 </div>
                 
-                <div className="relative mx-auto w-[595px] h-[842px]" ref={letterRef} style={{
+                <div className="relative mx-auto w-[595px] h-[842px] shadow-lg rounded-lg overflow-hidden" ref={letterRef} style={{
                   backgroundImage: templateData?.image_url ? `url(${templateData.image_url})` : 'none',
                   backgroundSize: '100% 100%',
                   backgroundPosition: 'center',
@@ -316,16 +337,10 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
           </div>
           
           <div className="p-4 border-t dark:border-gray-800 flex justify-between">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg"
-            >
-              إغلاق
-            </button>
             <div className="flex gap-2">
               <button
                 onClick={openInNewWindow}
-                className="px-4 py-2 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-lg flex items-center gap-2"
+                className="px-4 py-2 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-lg flex items-center gap-2 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
                 disabled={!letter}
               >
                 <Eye className="h-4 w-4" />
@@ -333,13 +348,19 @@ export function ViewLetterModal({ isOpen, onClose, letterId, requestId }: ViewLe
               </button>
               <button
                 onClick={handleExport}
-                className="px-4 py-2 bg-primary text-white rounded-lg flex items-center gap-2"
+                className="px-4 py-2 bg-primary text-white rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-colors"
                 disabled={!letter || isExporting}
               >
                 <Download className="h-4 w-4" />
                 {isExporting ? 'جاري التصدير...' : 'تصدير PDF'}
               </button>
             </div>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              إغلاق
+            </button>
           </div>
         </div>
       </ErrorBoundary>
