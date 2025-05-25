@@ -1,12 +1,38 @@
-# Archivos para ignorar en Bolt
-supabase/migrations_archive/
+# ملفات هجرة Supabase (كبيرة الحجم)
 supabase/migrations/*.sql
+supabase/migrations_archive/
+.bolt/supabase_discarded_migrations/
+
+# المجلدات المؤقتة والمخرجات
 node_modules/
 dist/
 build/
 coverage/
 .cache/
-.git/
-.github/
+
+# ملفات الأصول الكبيرة
+public/fonts/**/*.ttf
+public/fonts/**/*.woff
+public/fonts/**/*.woff2
+
+# ملفات السجلات والملفات المؤقتة
 *.log
-.DS_Store
+*.tmp
+*.temp
+
+# ملفات التكوين والبيئة المتكررة
+.env*
+!.env.example
+
+# ملفات القفل الكبيرة
+yarn.lock
+package-lock.json
+
+# ملفات التستات
+**/__tests__/**
+**/*.test.*
+**/*.spec.*
+
+# ملفات الوثائق الكبيرة
+*.pdf
+*.md
