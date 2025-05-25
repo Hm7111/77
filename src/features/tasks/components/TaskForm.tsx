@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Calendar, User, Clock, Flag, CircleAlert } from 'lucide-react';
+import { Save, Calendar, User, Clock, Flag, AlertCircle as CircleAlert } from 'lucide-react';
 import { TaskFormData, TaskPriority, TaskStatus, Task } from '../types';
 import { useAuth } from '../../../lib/auth';
 import { BranchSelector } from '../../../components/branches/BranchSelector';
