@@ -153,45 +153,49 @@ export function useTaskList() {
     queryKey: ['task-summary', dbUser?.id, filters.branch_id],
     queryFn: async () => {
       try {
-        let baseQuery = supabase.from('tasks');
-        
-        // تحديد المهام بناءً على المستخدم والفرع
-        if (!isAdmin && dbUser?.id) {
-          baseQuery = baseQuery.or(`assigned_to.eq.${dbUser.id},created_by.eq.${dbUser.id}`);
-        }
-        
-        if (filters.branch_id) {
-          baseQuery = baseQuery.eq('branch_id', filters.branch_id);
-        } else if (!isAdmin && dbUser?.branch_id) {
-          baseQuery = baseQuery.eq('branch_id', dbUser.branch_id);
-        }
+        // Create a function to get a base query with filters applied
+        const getBaseQuery = () => {
+          let query = supabase.from('tasks').select('*', { count: 'exact' });
+          
+          // تحديد المهام بناءً على المستخدم والفرع
+          if (!isAdmin && dbUser?.id) {
+            query = query.or(`assigned_to.eq.${dbUser.id},created_by.eq.${dbUser.id}`);
+          }
+          
+          if (filters.branch_id) {
+            query = query.eq('branch_id', filters.branch_id);
+          } else if (!isAdmin && dbUser?.branch_id) {
+            query = query.eq('branch_id', dbUser.branch_id);
+          }
+          
+          return query;
+        };
         
         // العدد الإجمالي
-        const { data, error, count: total } = await baseQuery.select('*', { count: 'exact', head: true });
-        if (error) throw error;
+        const { count: total } = await getBaseQuery().count();
         
         // عدد المهام الجديدة
-        const { count: newCount } = await baseQuery.eq('status', 'new').select('*', { count: 'exact', head: true });
+        const { count: newCount } = await getBaseQuery().eq('status', 'new').count();
         
         // عدد المهام قيد التنفيذ
-        const { count: inProgressCount } = await baseQuery.eq('status', 'in_progress').select('*', { count: 'exact', head: true });
+        const { count: inProgressCount } = await getBaseQuery().eq('status', 'in_progress').count();
         
         // عدد المهام المكتملة
-        const { count: completedCount } = await baseQuery.eq('status', 'completed').select('*', { count: 'exact', head: true });
+        const { count: completedCount } = await getBaseQuery().eq('status', 'completed').count();
         
         // عدد المهام المرفوضة
-        const { count: rejectedCount } = await baseQuery.eq('status', 'rejected').select('*', { count: 'exact', head: true });
+        const { count: rejectedCount } = await getBaseQuery().eq('status', 'rejected').count();
         
         // عدد المهام المؤجلة
-        const { count: postponedCount } = await baseQuery.eq('status', 'postponed').select('*', { count: 'exact', head: true });
+        const { count: postponedCount } = await getBaseQuery().eq('status', 'postponed').count();
         
         // عدد المهام المتأخرة
         const now = new Date().toISOString();
-        const { count: overdueCount } = await baseQuery
+        const { count: overdueCount } = await getBaseQuery()
           .lt('due_date', now)
           .not('status', 'eq', 'completed')
           .not('status', 'eq', 'rejected')
-          .select('*', { count: 'exact', head: true });
+          .count();
         
         return {
           total: total || 0,
