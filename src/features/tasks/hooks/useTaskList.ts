@@ -155,10 +155,11 @@ export function useTaskList() {
       try {
         // إنشاء استعلام أساسي
         const createBaseQuery = () => {
-          let baseQuery = supabase.from('tasks');
+          let baseQuery = supabase.from('tasks').select('*', { count: 'exact', head: true });
 
           // تحديد المهام بناءً على المستخدم والفرع
           if (!isAdmin && dbUser?.id) {
+            // استخدام الشرط الصحيح للتصفية
             baseQuery = baseQuery.or(`assigned_to.eq.${dbUser.id},created_by.eq.${dbUser.id}`);
           }
           
@@ -172,40 +173,32 @@ export function useTaskList() {
         };
         
         // العدد الإجمالي
-        const { data: totalData, error: totalError, count: total } = await createBaseQuery()
-          .select('*', { count: 'exact', head: true });
-          
+        const { error: totalError, count: total } = await createBaseQuery();
         if (totalError) throw totalError;
         
         // عدد المهام الجديدة
         const { count: newCount } = await createBaseQuery()
-          .select('*', { count: 'exact', head: true })
           .eq('status', 'new');
         
         // عدد المهام قيد التنفيذ
         const { count: inProgressCount } = await createBaseQuery()
-          .select('*', { count: 'exact', head: true })
           .eq('status', 'in_progress');
         
         // عدد المهام المكتملة
         const { count: completedCount } = await createBaseQuery()
-          .select('*', { count: 'exact', head: true })
           .eq('status', 'completed');
         
         // عدد المهام المرفوضة
         const { count: rejectedCount } = await createBaseQuery()
-          .select('*', { count: 'exact', head: true })
           .eq('status', 'rejected');
         
         // عدد المهام المؤجلة
         const { count: postponedCount } = await createBaseQuery()
-          .select('*', { count: 'exact', head: true })
           .eq('status', 'postponed');
         
         // عدد المهام المتأخرة
         const now = new Date().toISOString();
         const { count: overdueCount } = await createBaseQuery()
-          .select('*', { count: 'exact', head: true })
           .lt('due_date', now)
           .not('status', 'eq', 'completed')
           .not('status', 'eq', 'rejected');

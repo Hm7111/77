@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HelpCircle, Keyboard, LogOut, Moon, Sun, Settings, Bell, User, Search, Menu, X } from 'lucide-react'
+import { HelpCircle, Keyboard, LogOut, Moon, Sun, Settings, Bell, User, Search, Menu, X, Building } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useThemeStore } from '../../store/theme'
 import { supabase } from '../../lib/supabase'
