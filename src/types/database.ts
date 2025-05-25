@@ -261,6 +261,54 @@ export interface ApprovalLog {
   created_at: string
 }
 
+// New interfaces for task management system
+export type TaskStatus = 'new' | 'in_progress' | 'completed' | 'rejected' | 'postponed';
+export type TaskPriority = 'low' | 'medium' | 'high';
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string | null;
+  created_by: string;
+  assigned_to?: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  due_date?: string | null;
+  completion_date?: string | null;
+  branch_id?: string | null;
+  is_active: boolean;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+  branch?: Branch;
+  creator?: User;
+  assignee?: User;
+}
+
+export interface TaskLog {
+  id: string;
+  task_id: string;
+  user_id: string;
+  action: string;
+  previous_status?: TaskStatus | null;
+  new_status?: TaskStatus | null;
+  notes?: string | null;
+  created_at: string;
+  user?: User;
+}
+
+export interface TaskAttachment {
+  id: string;
+  task_id: string;
+  file_name: string;
+  file_size: number;
+  file_type: string;
+  file_url: string;
+  uploaded_by: string;
+  uploaded_at: string;
+  user?: User;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -313,6 +361,21 @@ export interface Database {
         Row: ApprovalLog
         Insert: Omit<ApprovalLog, 'id' | 'created_at'>
         Update: Partial<Omit<ApprovalLog, 'id' | 'created_at'>>
+      }
+      tasks: {
+        Row: Task
+        Insert: Omit<Task, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<Task, 'id' | 'created_at' | 'updated_at'>>
+      }
+      task_logs: {
+        Row: TaskLog
+        Insert: Omit<TaskLog, 'id' | 'created_at'>
+        Update: Partial<Omit<TaskLog, 'id' | 'created_at'>>
+      }
+      task_attachments: {
+        Row: TaskAttachment
+        Insert: Omit<TaskAttachment, 'id' | 'uploaded_at'>
+        Update: Partial<Omit<TaskAttachment, 'id' | 'uploaded_at'>>
       }
     }
   }

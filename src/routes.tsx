@@ -14,6 +14,8 @@ import { PermissionsManager } from './pages/admin/permissions'
 import { LetterEditor, ViewLetter, EditLetter } from './features/letters/pages'
 import { AuthProvider } from './lib/auth'
 import { Approvals } from './pages/admin/Approvals' // إضافة صفحة الموافقات
+// استيراد صفحات نظام المهام
+import { TasksList, TaskDetails, NewTask } from './features/tasks/pages'
 
 export function AppRoutes() {
   return (
@@ -32,7 +34,11 @@ export function AppRoutes() {
           <Route path="permissions" element={<PermissionsManager />} />
           <Route path="settings" element={<Settings />} />
           <Route path="audit-logs" element={<AuditLogs />} />
-          <Route path="approvals" element={<Approvals />} /> {/* إضافة مسار صفحة الموافقات */}
+          <Route path="approvals" element={<Approvals />} />
+          {/* إضافة مسارات نظام المهام */}
+          <Route path="tasks" element={<TasksList />} />
+          <Route path="tasks/new" element={<NewTask />} />
+          <Route path="tasks/:id" element={<TaskDetails />} />
         </Route>
         
         <Route path="/" element={<Navigate to="/login" replace />} />

@@ -1,4 +1,4 @@
-import { FileText, Home, Settings, Users, History, Building, Shield, Key, ClipboardCheck, FileCheck } from 'lucide-react'
+import { FileText, Home, Settings, Users, History, Building, Shield, Key, ClipboardCheck, FileCheck, ListTodo } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '../../lib/utils'
 import { useAuth } from '../../lib/auth'
@@ -27,6 +27,12 @@ export function Sidebar() {
         href: '/admin/approvals',
         icon: ClipboardCheck,
         permission: 'view:letters'
+      },
+      {
+        name: 'المهام',
+        href: '/admin/tasks',
+        icon: ListTodo,
+        permission: 'view:tasks'
       }
     ];
     

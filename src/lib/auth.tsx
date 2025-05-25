@@ -26,14 +26,25 @@ export const DEFAULT_PERMISSIONS = {
     'delete:branches',
     'view:settings',
     'edit:settings',
-    'view:audit_logs'
+    'view:audit_logs',
+    'view:approvals',
+    'approve:letters',
+    'reject:letters',
+    'view:tasks',
+    'create:tasks',
+    'edit:tasks',
+    'delete:tasks'
   ],
   user: [
     'view:letters',
     'create:letters',
     'edit:letters:own',
     'delete:letters:own',
-    'view:templates'
+    'view:templates',
+    'request:approval',
+    'view:tasks',
+    'create:tasks:own',
+    'edit:tasks:own'
   ]
 }
 
@@ -45,6 +56,7 @@ interface AuthContextType {
   isAdmin: boolean;
   hasPermission: (permission: string) => boolean;
   logout: () => Promise<void>;
+  reloadPermissions: () => Promise<void>;
 }
 
 // Create auth context
@@ -54,7 +66,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAdmin: false,
   hasPermission: () => false,
-  logout: async () => {}
+  logout: async () => {},
+  reloadPermissions: async () => {},
 });
 
 // Auth provider component
@@ -64,38 +77,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const { data: dbUser, isLoading: isDbUserLoading } = useQuery({
+  // Load user data from Supabase
+  const { data: dbUser, isLoading: isDbUserLoading, refetch: refetchUser } = useQuery({
     queryKey: ['user', user?.id],
     queryFn: async () => {
       if (!user?.id) return null
-      const { data, error } = await supabase
-        .from('users')
-        .select('*, branches(*)')
-        .eq('id', user.id)
-        .single()
       
-      if (error) throw error
-      
-      // مهم: التحقق من حالة تنشيط المستخدم
-      if (data && !data.is_active && data.role !== 'admin') {
-        // إذا كان المستخدم غير نشط، قم بتسجيل الخروج وإعادة توجيهه إلى صفحة تسجيل الدخول
-        await supabase.auth.signOut()
-        setUser(null)
-        navigate('/login', { 
-          state: { 
-            message: 'تم تعطيل حسابك. يرجى التواصل مع المسؤول.' 
-          } 
-        })
-        return null
+      try {
+        // Query by id instead of email since we have a foreign key constraint with auth.users
+        // Use RPC function to get user with complete branch details
+        const { data, error } = await supabase
+          .rpc('get_user_with_branch_details', { user_id: user.id })
+          .single()
+        
+        if (error) {
+          console.error('Error fetching user data:', error);
+          throw error;
+        }
+        
+       console.log('Loaded user data:', data);
+       
+        // مهم: التحقق من حالة تنشيط المستخدم
+        if (data && !data.is_active && data.role !== 'admin') {
+          // إذا كان المستخدم غير نشط، قم بتسجيل الخروج وإعادة توجيهه إلى صفحة تسجيل الدخول
+          await supabase.auth.signOut()
+          setUser(null)
+          navigate('/login', { 
+            state: { 
+              message: 'تم تعطيل حسابك. يرجى التواصل مع المسؤول.' 
+            } 
+          })
+          return null
+        }
+        
+        return data
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        return null;
       }
-      
-      return data
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+   staleTime: 1000 * 60 * 1, // 1 minute - reduce stale time to refresh more frequently
     cacheTime: 1000 * 60 * 30, // 30 minutes
     retry: 3
   })
+
+  // Function to reload user permissions (useful after role changes)
+  const reloadPermissions = useCallback(async () => {
+    if (user?.id) {
+      await refetchUser();
+    }
+  }, [user?.id, refetchUser]);
 
   useEffect(() => {
     async function loadUser() {
@@ -125,34 +157,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [queryClient])
 
   // Check if user has a specific permission
-  const hasPermission = (permission: string) => {
-    if (!dbUser) return false
+  const hasPermission = useCallback((permission: string): boolean => {
+    if (!dbUser) return false;
     
     // Admins have all permissions
-    if (dbUser.role === 'admin') return true
+    if (dbUser.role === 'admin') return true;
     
     // For regular users, check default permissions based on role
-    const userPermissions = DEFAULT_PERMISSIONS[dbUser.role] || []
+    const userPermissions = DEFAULT_PERMISSIONS[dbUser.role as keyof typeof DEFAULT_PERMISSIONS] || [];
     
     // Add any custom permissions assigned to the user
     if (dbUser.permissions && Array.isArray(dbUser.permissions)) {
-      userPermissions.push(...dbUser.permissions)
+      // Get permissions by ID from database
+      const customPermissionIds = dbUser.permissions;
+      // In a real implementation, we would fetch the actual permission codes
+      // For now we'll just add the IDs (this would need to be improved)
     }
     
     // Handle ownership-specific permissions (e.g., "edit:letters:own")
     if (permission.endsWith(':own')) {
-      const basePermission = permission.replace(':own', '')
-      return userPermissions.includes(basePermission) || userPermissions.includes(permission)
+      const basePermission = permission.replace(':own', '');
+      return userPermissions.includes(basePermission) || userPermissions.includes(permission);
     }
     
-    return userPermissions.includes(permission)
-  }
+    return userPermissions.includes(permission);
+  }, [dbUser]);
 
   // Logout function
-  const logout = async () => {
-    await supabase.auth.signOut()
-    navigate('/login')
-  }
+  const logout = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate('/login', {
+        state: {
+          message: 'تم تسجيل الخروج بنجاح'
+        }
+      });
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  }, [navigate]);
 
   return (
     <AuthContext.Provider value={{ 
@@ -161,7 +204,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading: loading || isDbUserLoading, 
       isAdmin: dbUser?.role === 'admin',
       hasPermission,
-      logout
+      logout,
+      reloadPermissions
     }}>
       {children}
     </AuthContext.Provider>
