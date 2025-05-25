@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Filter, SortAsc, SortDesc, List, LayoutGrid, Clock, ClipboardList, User, Building, Flag, X, AlertCircle as CircleAlert, RefreshCw } from 'lucide-react';
+import { Plus, Search, Filter, SortAsc, SortDesc, List, LayoutGrid, Clock, ClipboardList, User, Building, Flag, X, AlertCircle as CircleAlert, RefreshCw, CheckCircle, Pause, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTaskList } from '../hooks/useTaskList';
 import { useTaskActions } from '../hooks/useTaskActions';
