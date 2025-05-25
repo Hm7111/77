@@ -153,45 +153,45 @@ export function useTaskList() {
     queryKey: ['task-summary', dbUser?.id, filters.branch_id],
     queryFn: async () => {
       try {
-        let query = supabase.from('tasks');
+        let baseQuery = supabase.from('tasks');
         
         // تحديد المهام بناءً على المستخدم والفرع
         if (!isAdmin && dbUser?.id) {
-          query = query.or(`assigned_to.eq.${dbUser.id},created_by.eq.${dbUser.id}`);
+          baseQuery = baseQuery.or(`assigned_to.eq.${dbUser.id},created_by.eq.${dbUser.id}`);
         }
         
         if (filters.branch_id) {
-          query = query.eq('branch_id', filters.branch_id);
+          baseQuery = baseQuery.eq('branch_id', filters.branch_id);
         } else if (!isAdmin && dbUser?.branch_id) {
-          query = query.eq('branch_id', dbUser.branch_id);
+          baseQuery = baseQuery.eq('branch_id', dbUser.branch_id);
         }
         
         // العدد الإجمالي
-        const { count: total, error } = await query.count();
+        const { data, error, count: total } = await baseQuery.select('*', { count: 'exact', head: true });
         if (error) throw error;
         
         // عدد المهام الجديدة
-        const { count: newCount } = await query.eq('status', 'new').count();
+        const { count: newCount } = await baseQuery.eq('status', 'new').select('*', { count: 'exact', head: true });
         
         // عدد المهام قيد التنفيذ
-        const { count: inProgressCount } = await query.eq('status', 'in_progress').count();
+        const { count: inProgressCount } = await baseQuery.eq('status', 'in_progress').select('*', { count: 'exact', head: true });
         
         // عدد المهام المكتملة
-        const { count: completedCount } = await query.eq('status', 'completed').count();
+        const { count: completedCount } = await baseQuery.eq('status', 'completed').select('*', { count: 'exact', head: true });
         
         // عدد المهام المرفوضة
-        const { count: rejectedCount } = await query.eq('status', 'rejected').count();
+        const { count: rejectedCount } = await baseQuery.eq('status', 'rejected').select('*', { count: 'exact', head: true });
         
         // عدد المهام المؤجلة
-        const { count: postponedCount } = await query.eq('status', 'postponed').count();
+        const { count: postponedCount } = await baseQuery.eq('status', 'postponed').select('*', { count: 'exact', head: true });
         
         // عدد المهام المتأخرة
         const now = new Date().toISOString();
-        const { count: overdueCount } = await query
+        const { count: overdueCount } = await baseQuery
           .lt('due_date', now)
           .not('status', 'eq', 'completed')
           .not('status', 'eq', 'rejected')
-          .count();
+          .select('*', { count: 'exact', head: true });
         
         return {
           total: total || 0,
