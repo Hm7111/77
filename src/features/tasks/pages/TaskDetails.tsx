@@ -25,6 +25,7 @@ import { TaskCommentForm } from '../components/TaskCommentForm';
 import { useToast } from '../../../hooks/useToast';
 import { useAuth } from '../../../lib/auth';
 import { TaskForm } from '../components/TaskForm';
+import { NotificationBadge } from '../../notifications/components';
 
 /**
  * صفحة عرض تفاصيل المهمة
@@ -371,6 +372,8 @@ export function TaskDetails() {
               </div>
               
               <div className="flex items-center gap-2">
+                <NotificationBadge />
+                
                 {canEdit() && (
                   <button
                     onClick={() => setShowEditForm(true)}

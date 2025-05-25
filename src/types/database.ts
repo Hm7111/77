@@ -283,6 +283,17 @@ export interface Task {
   branch?: Branch;
   creator?: User;
   assignee?: User;
+  // دعم تعيين مهمة لأكثر من شخص
+  assignees?: string[] | null;
+  // ربط المهمة بمشروع أو خطاب أو جهة
+  project_id?: string | null;
+  letter_id?: string | null;
+  entity_id?: string | null;
+  // معلومات التقييم
+  rating?: number | null;
+  rating_notes?: string | null;
+  rated_by?: string | null;
+  rated_at?: string | null;
 }
 
 export interface TaskLog {
@@ -307,6 +318,40 @@ export interface TaskAttachment {
   uploaded_by: string;
   uploaded_at: string;
   user?: User;
+}
+
+// تعريف جديد لنوع إشعار المهمة
+export interface TaskNotification {
+  id: string;
+  task_id: string;
+  user_id: string;
+  type: 'assigned' | 'status_change' | 'comment' | 'due_soon' | 'overdue' | 'completed' | 'rated';
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+// تعريف جديد لتعليق المهمة
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+  user?: User;
+}
+
+// تعريف جديد لتقرير المهام
+export interface TaskReport {
+  id: string;
+  title: string;
+  period_start: string;
+  period_end: string;
+  generated_by: string;
+  data: Record<string, any>;
+  created_at: string;
+  report_type: 'user' | 'team' | 'branch' | 'system';
 }
 
 export interface Database {
@@ -376,6 +421,21 @@ export interface Database {
         Row: TaskAttachment
         Insert: Omit<TaskAttachment, 'id' | 'uploaded_at'>
         Update: Partial<Omit<TaskAttachment, 'id' | 'uploaded_at'>>
+      }
+      task_comments: {
+        Row: TaskComment
+        Insert: Omit<TaskComment, 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Omit<TaskComment, 'id' | 'created_at' | 'updated_at'>>
+      }
+      task_notifications: {
+        Row: TaskNotification
+        Insert: Omit<TaskNotification, 'id' | 'created_at'>
+        Update: Partial<Omit<TaskNotification, 'id' | 'created_at'>>
+      }
+      task_reports: {
+        Row: TaskReport
+        Insert: Omit<TaskReport, 'id' | 'created_at'>
+        Update: Partial<Omit<TaskReport, 'id' | 'created_at'>>
       }
     }
   }

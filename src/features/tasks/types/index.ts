@@ -1,6 +1,6 @@
-import { Task, TaskLog, TaskAttachment, TaskStatus, TaskPriority, User, Branch } from '../../../types/database';
+import { Task, TaskLog, TaskAttachment, TaskStatus, TaskPriority, User, Branch, TaskComment, TaskNotification, TaskReport } from '../../../types/database';
 
-export type { Task, TaskLog, TaskAttachment, TaskStatus, TaskPriority };
+export type { Task, TaskLog, TaskAttachment, TaskStatus, TaskPriority, TaskComment, TaskNotification, TaskReport };
 
 // واجهات إضافية خاصة بنظام المهام
 
@@ -13,6 +13,13 @@ export interface TaskFormData {
   due_date?: string | null;
   notes?: string | null;
   branch_id?: string | null;
+  // دعم تعيين مهمة لأكثر من شخص
+  assignees?: string[] | null;
+  // ربط المهمة بمشروع أو خطاب أو جهة
+  project_id?: string | null;
+  letter_id?: string | null;
+  entity_id?: string | null;
+  entity_type?: 'project' | 'department' | 'letter';
 }
 
 export interface TaskFilters {
@@ -22,6 +29,12 @@ export interface TaskFilters {
   branch_id?: string | null;
   search?: string;
   timeframe?: 'all' | 'today' | 'week' | 'month' | 'overdue';
+  // تصفية إضافية حسب المشروع أو الخطاب أو الجهة
+  project_id?: string | null;
+  letter_id?: string | null;
+  entity_id?: string | null;
+  // تصفية حسب التقييم
+  rating?: number | null;
 }
 
 export interface TaskUpdate {
@@ -33,6 +46,13 @@ export interface TaskUpdate {
   due_date?: string | null;
   description?: string;
   title?: string;
+  // تحديثات للميزات الجديدة
+  assignees?: string[] | null;
+  project_id?: string | null;
+  letter_id?: string | null;
+  entity_id?: string | null;
+  rating?: number | null;
+  rating_notes?: string | null;
 }
 
 export interface TaskComment {
@@ -56,6 +76,8 @@ export interface TaskWithRelations extends Task {
   branch?: Branch;
   logs?: TaskLog[];
   attachments?: TaskAttachment[];
+  comments?: TaskComment[];
+  notifications?: TaskNotification[];
 }
 
 export interface TaskLogWithRelations extends TaskLog {
@@ -65,4 +87,21 @@ export interface TaskLogWithRelations extends TaskLog {
 
 export interface TaskAttachmentWithRelations extends TaskAttachment {
   user?: User;
+}
+
+export interface TaskCommentWithRelations extends TaskComment {
+  user?: User;
+}
+
+export interface TaskNotificationWithRelations extends TaskNotification {
+  user?: User;
+  task?: Task;
+}
+
+export interface TaskReportData {
+  userId?: string;
+  branchId?: string;
+  startDate: string;
+  endDate: string;
+  reportType: 'user' | 'team' | 'branch' | 'system';
 }
