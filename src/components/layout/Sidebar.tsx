@@ -78,8 +78,15 @@ export function Sidebar() {
   const navigation = getNavigationItems();
 
   return (
-    <aside className="w-64 border-l border-gray-700/20 bg-[#0f172a] h-[calc(100vh-4rem)] transition-colors duration-300">
-      <nav className="space-y-1">
+    <aside className="w-64 bg-[#0f172a] h-screen transition-colors duration-300 flex flex-col">
+      <div className="p-4 border-b border-gray-700/30 flex items-center justify-center">
+        <img 
+          src="https://hbxalipjrbcrqljddxfp.supabase.co/storage/v1/object/public/templates//logo.png" 
+          alt="الجمعية السعودية للإعاقة السمعية" 
+          className="h-16 object-contain brightness-0 invert"
+        />
+      </div>
+      <nav className="space-y-1 flex-1 py-4 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href || 
                           (item.href !== '/admin' && location.pathname.startsWith(item.href));
@@ -95,18 +102,21 @@ export function Sidebar() {
               key={item.name}
               to={item.href}
               className={cn(
-                'flex items-center gap-x-3 px-4 py-3 text-sm font-medium',
+                'flex items-center gap-x-3 px-6 py-3 text-sm font-medium',
                 isActive
-                  ? 'bg-primary/10 text-white border-r-4 border-primary'
-                  : 'text-gray-400 hover:bg-[#1e293b] hover:text-white'
+                  ? 'bg-primary/20 text-white border-r-4 border-primary'
+                  : 'text-gray-400 hover:bg-[#1e293b] hover:text-white transition-colors duration-200'
               )}
             >
-              <item.icon className={`h-5 w-5 ${isActive ? 'text-primary' : ''}`} />
+              <item.icon className={`h-5 w-5 ${isActive ? 'text-primary' : 'text-gray-400'}`} />
               {item.name}
             </Link>
           )
         })}
       </nav>
+      <div className="p-4 border-t border-gray-700/30 text-xs text-gray-500 text-center">
+        نظام إدارة الخطابات © 2025
+      </div>
     </aside>
   )
 }

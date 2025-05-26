@@ -181,8 +181,8 @@ export function Header() {
         </div>
       )}
     
-      <header className="border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-sm transition-colors duration-300">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+      <header className="border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-sm transition-colors duration-300 w-full">
+        <div className="px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-x-4">
             {/* زر القائمة الجانبية للشاشات الصغيرة */}
             <button 
@@ -192,14 +192,7 @@ export function Header() {
               {showMobileMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             
-            <Link to="/admin" className="flex items-center gap-x-2">
-              <img 
-                src="https://hbxalipjrbcrqljddxfp.supabase.co/storage/v1/object/public/templates//logo.png" 
-                alt="الجمعية السعودية للإعاقة السمعية" 
-                className="h-10 object-contain dark:brightness-0 dark:invert dark:contrast-200 transition-all duration-300" 
-              />
-              <h1 className="text-xl font-bold hidden sm:block">نظام إدارة الخطابات</h1>
-            </Link>
+            <h1 className="text-xl font-bold">نظام إدارة الخطابات</h1>
           </div>
           
           {/* شريط البحث في الوسط */}
