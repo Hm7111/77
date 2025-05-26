@@ -79,7 +79,7 @@ export function Header() {
       {/* نافذة اختصارات لوحة المفاتيح */}
       {showShortcuts && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50\" onClick={() => setShowShortcuts(false)}>
-          <div className="bg-white dark:bg-gray-900 max-w-md w-full rounded-lg shadow-lg overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 max-w-md w-full rounded-lg shadow-lg overflow-hidden\" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-800">
               <h2 className="text-lg font-semibold">اختصارات لوحة المفاتيح</h2>
               <button onClick={() => setShowShortcuts(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
