@@ -17,11 +17,7 @@ import {
   LayoutDashboard,
   ActivitySquare,
   Building,
-  ArrowRight,
-  CheckSquare,
-  ClipboardCheck,
-  FileCheck,
-  ListTodo
+  ArrowRight
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
@@ -58,16 +54,16 @@ export function Dashboard() {
     setNotifications([
       {
         id: 1,
-        title: 'طلب موافقة جديد',
-        description: 'تم استلام طلب موافقة على الخطاب رقم 15/2025',
+        title: 'تم إنشاء خطاب جديد',
+        description: 'تم إنشاء الخطاب رقم 15/2025 بنجاح',
         time: '1 دقيقة',
         read: false,
         type: 'success'
       },
       {
         id: 2,
-        title: 'تذكير بمهمة',
-        description: 'لديك مهمة بعنوان "مراجعة مسودات الخطابات" مستحقة اليوم',
+        title: 'تذكير بالمراجعة',
+        description: 'لديك 2 مسودة بحاجة للمراجعة والإكمال',
         time: '3 ساعات',
         read: true,
         type: 'info'
@@ -164,44 +160,10 @@ export function Dashboard() {
       const { count: draft, error: draftError } = await draftQuery.eq('status', 'draft');
       if (draftError) throw draftError;
 
-      // جلب عدد طلبات الموافقة المعلقة
-      let approvalQuery = supabase.from('approval_requests').select('*', { count: 'exact', head: true });
-
-      if (dbUser?.role !== 'admin') {
-        approvalQuery = approvalQuery.eq('assigned_to', dbUser?.id);
-      }
-
-      const { count: pendingApprovals, error: approvalError } = await approvalQuery.eq('status', 'submitted');
-      if (approvalError) throw approvalError;
-
-      // جلب عدد المهام
-      let tasksQuery = supabase.from('tasks').select('*', { count: 'exact', head: true });
-
-      if (dbUser?.role !== 'admin') {
-        tasksQuery = tasksQuery.eq('assigned_to', dbUser?.id);
-      }
-
-      const { count: totalTasks, error: tasksError } = await tasksQuery;
-      if (tasksError) throw tasksError;
-
-      // جلب عدد المهام المعلقة
-      let pendingTasksQuery = supabase.from('tasks').select('*', { count: 'exact', head: true })
-        .in('status', ['new', 'in_progress']);
-
-      if (dbUser?.role !== 'admin') {
-        pendingTasksQuery = pendingTasksQuery.eq('assigned_to', dbUser?.id);
-      }
-
-      const { count: pendingTasks, error: pendingTasksError } = await pendingTasksQuery;
-      if (pendingTasksError) throw pendingTasksError;
-
       return {
         total: total ?? 0,
         recent: recent ?? 0,
-        draft: draft ?? 0,
-        pendingApprovals: pendingApprovals ?? 0,
-        totalTasks: totalTasks ?? 0,
-        pendingTasks: pendingTasks ?? 0
+        draft: draft ?? 0
       };
     },
     refetchInterval: 30000 // إعادة تحميل البيانات كل 30 ثانية
@@ -254,54 +216,6 @@ export function Dashboard() {
     },
     refetchInterval: 30000 // إعادة تحميل البيانات كل 30 ثانية
   });
-
-  // جلب المهام المعلقة
-  const { data: pendingTasks = [], isLoading: tasksLoading } = useQuery({
-    queryKey: ['pending-tasks', dbUser?.id, selectedBranch],
-    enabled: !!dbUser?.id,
-    queryFn: async () => {
-      let query = supabase
-        .from('tasks')
-        .select(`
-          id, 
-          title, 
-          status, 
-          priority,
-          due_date,
-          assignee:assigned_to(full_name)
-        `)
-        .in('status', ['new', 'in_progress'])
-        .order('due_date', { ascending: true });
-      
-      if (dbUser?.role !== 'admin') {
-        query = query.eq('assigned_to', dbUser?.id);
-      }
-      
-      if (selectedBranch) {
-        query = query.eq('branch_id', selectedBranch);
-      }
-      
-      const { data, error } = await query.limit(5);
-      
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 30000
-  });
-
-  // جلب طلبات الموافقة المعلقة
-  const { data: pendingApprovals = [], isLoading: approvalsLoading } = useQuery({
-    queryKey: ['pending-approvals-dash', dbUser?.id],
-    enabled: !!dbUser?.id,
-    queryFn: async () => {
-      // استخدام RPC لجلب طلبات الموافقة المعلقة
-      const { data, error } = await supabase.rpc('get_pending_approvals');
-      
-      if (error) throw error;
-      return data.slice(0, 5); // عرض أحدث 5 طلبات فقط
-    },
-    refetchInterval: 30000
-  });
   
   // تحديث البيانات عند تغيير الفرع
   useEffect(() => {
@@ -311,11 +225,18 @@ export function Dashboard() {
     }
   }, [selectedBranch, refetchStats, refetchLetters]);
   
-  // إحصائيات النشاط الشهري (محاكاة)
-  const monthlyStats = {
+  // حساب الإحصائيات للرسم البياني (محاكاة)
+  const chartData = {
     labels: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو'],
     datasets: [65, 32, 45, 78, 52, 60]
   };
+
+  // قائمة المهام والتذكيرات (محاكاة)
+  const tasks = [
+    { id: 1, title: 'مراجعة مسودات الخطابات', status: 'pending', dueDate: '2025-06-15' },
+    { id: 2, title: 'تحديث قوالب الخطابات', status: 'completed', dueDate: '2025-06-10' },
+    { id: 3, title: 'إضافة توقيع إلكتروني', status: 'pending', dueDate: '2025-06-20' }
+  ];
 
   // تحويل التاريخ الميلادي إلى هجري
   const getHijriDate = (date: string) => {
@@ -412,48 +333,61 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 opacity-10">
-            <Clock className="h-32 w-32 -mt-6 -mr-6" />
+            <Calendar className="h-32 w-32 -mt-6 -mr-6" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">طلبات الموافقة</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            خطابات {period === 'week' ? 'الأسبوع' : period === 'month' ? 'الشهر' : 'السنة'}
+          </h3>
           <div className="flex items-baseline space-x-2 rtl:space-x-reverse">
-            <span className="text-4xl font-bold">{stats?.pendingApprovals || 0}</span>
-            <span className="text-amber-100">طلب</span>
+            <span className="text-4xl font-bold">{stats?.recent || 0}</span>
+            <span className="text-green-100">خطاب</span>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-1">
             <button
-              onClick={() => navigate('/admin/approvals')}
-              className="text-xs bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-full flex items-center gap-1.5"
+              onClick={() => setPeriod('week')}
+              className={`text-xs ${period === 'week' ? 'bg-white/30' : 'bg-white/20 hover:bg-white/30'} transition-colors px-3 py-1 rounded-full`}
             >
-              <ClipboardCheck className="h-3.5 w-3.5" />
-              <span>عرض طلبات الموافقة</span>
+              أسبوع
+            </button>
+            <button
+              onClick={() => setPeriod('month')}
+              className={`text-xs ${period === 'month' ? 'bg-white/30' : 'bg-white/20 hover:bg-white/30'} transition-colors px-3 py-1 rounded-full`}
+            >
+              شهر
+            </button>
+            <button
+              onClick={() => setPeriod('year')}
+              className={`text-xs ${period === 'year' ? 'bg-white/30' : 'bg-white/20 hover:bg-white/30'} transition-colors px-3 py-1 rounded-full`}
+            >
+              سنة
             </button>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-md p-6 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 opacity-10">
-            <ListTodo className="h-32 w-32 -mt-6 -mr-6" />
+            <Clock className="h-32 w-32 -mt-6 -mr-6" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">المهام النشطة</h3>
+          <h3 className="text-lg font-semibold mb-2">المسودات</h3>
           <div className="flex items-baseline space-x-2 rtl:space-x-reverse">
-            <span className="text-4xl font-bold">{stats?.pendingTasks || 0}</span>
-            <span className="text-green-100">مهمة</span>
+            <span className="text-4xl font-bold">{stats?.draft || 0}</span>
+            <span className="text-amber-100">خطاب</span>
           </div>
           <div className="mt-4">
             <button
-              onClick={() => navigate('/admin/tasks')}
+              onClick={() => navigate('/admin/letters?status=draft')}
               className="text-xs bg-white/20 hover:bg-white/30 transition-colors px-3 py-1.5 rounded-full flex items-center gap-1.5"
             >
-              <CheckSquare className="h-3.5 w-3.5" />
-              <span>عرض المهام</span>
+              <FileText className="h-3.5 w-3.5" />
+              <span>عرض المسودات</span>
             </button>
           </div>
         </div>
       </motion.div>
 
-      {/* Quick Actions and Activity */}
+      {/* Activity and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Quick Actions */}
         <motion.div 
@@ -474,7 +408,7 @@ export function Dashboard() {
               className="w-full flex items-center p-4 rounded-lg transition-all bg-primary/5 hover:bg-primary/10 border-2 border-primary/10 hover:border-primary/20"
             >
               <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center ml-4">
-                <FileText className="h-5 w-5 text-primary" />
+                <Plus className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 text-right">
                 <h3 className="font-semibold text-gray-800 dark:text-white">إنشاء خطاب جديد</h3>
@@ -483,30 +417,32 @@ export function Dashboard() {
             </button>
             
             <button
-              onClick={() => navigate('/admin/approvals')}
+              onClick={() => navigate('/admin/letters')}
               className="w-full flex items-center p-4 rounded-lg transition-all hover:bg-gray-50 dark:hover:bg-gray-700/50 border-2 border-gray-100 dark:border-gray-700"
             >
-              <div className="h-10 w-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center ml-4">
-                <ClipboardCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center ml-4">
+                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="flex-1 text-right">
-                <h3 className="font-semibold text-gray-800 dark:text-white">إدارة الموافقات</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">عرض وإدارة طلبات الموافقة</p>
+                <h3 className="font-semibold text-gray-800 dark:text-white">إدارة الخطابات</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">عرض وإدارة جميع الخطابات الخاصة بك</p>
               </div>
             </button>
             
-            <button
-              onClick={() => navigate('/admin/tasks/new')}
-              className="w-full flex items-center p-4 rounded-lg transition-all hover:bg-gray-50 dark:hover:bg-gray-700/50 border-2 border-gray-100 dark:border-gray-700"
-            >
-              <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center ml-4">
-                <ListTodo className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="flex-1 text-right">
-                <h3 className="font-semibold text-gray-800 dark:text-white">إنشاء مهمة جديدة</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">إنشاء وتعيين مهمة جديدة</p>
-              </div>
-            </button>
+            {dbUser?.role === 'admin' && (
+              <button
+                onClick={() => navigate('/admin/branches')}
+                className="w-full flex items-center p-4 rounded-lg transition-all hover:bg-gray-50 dark:hover:bg-gray-700/50 border-2 border-gray-100 dark:border-gray-700"
+              >
+                <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center ml-4">
+                  <Building className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="flex-1 text-right">
+                  <h3 className="font-semibold text-gray-800 dark:text-white">إدارة الفروع</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">إدارة فروع المنظمة والمستخدمين</p>
+                </div>
+              </button>
+            )}
           </div>
         </motion.div>
         
@@ -529,14 +465,10 @@ export function Dashboard() {
             </h2>
             
             <div>
-              <select 
-                className="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg py-1.5 px-3"
-                onChange={(e) => setPeriod(e.target.value as any)}
-                value={period}
-              >
-                <option value="week">آخر أسبوع</option>
-                <option value="month">آخر شهر</option>
-                <option value="year">آخر سنة</option>
+              <select className="text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg py-1.5 px-3">
+                <option>آخر 6 أشهر</option>
+                <option>آخر سنة</option>
+                <option>آخر 3 سنوات</option>
               </select>
             </div>
           </div>
@@ -553,7 +485,7 @@ export function Dashboard() {
               </div>
               
               {/* Chart bars */}
-              {monthlyStats.datasets.map((value, index) => (
+              {chartData.datasets.map((value, index) => (
                 <div key={index} className="flex-1 flex flex-col items-center">
                   <div className="h-full w-full flex items-end justify-center">
                     <div 
@@ -561,7 +493,7 @@ export function Dashboard() {
                       style={{ height: `${(value / 100) * 100}%` }}
                     ></div>
                   </div>
-                  <span className="mt-2 text-xs text-gray-600 dark:text-gray-400">{monthlyStats.labels[index]}</span>
+                  <span className="mt-2 text-xs text-gray-600 dark:text-gray-400">{chartData.labels[index]}</span>
                 </div>
               ))}
             </div>
@@ -572,18 +504,16 @@ export function Dashboard() {
                 <div className="text-xl font-bold">10.2 / شهر</div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-                <div className="text-sm text-gray-600 dark:text-gray-400">نسبة المسودات</div>
-                <div className="text-xl font-bold">
-                  {stats?.total ? Math.round((stats.draft / stats.total) * 100) : 0}%
-                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">النمو</div>
+                <div className="text-xl font-bold text-green-500">+12.5%</div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
                 <div className="text-sm text-gray-600 dark:text-gray-400">الشهر الأعلى</div>
                 <div className="text-xl font-bold">أبريل</div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-                <div className="text-sm text-gray-600 dark:text-gray-400">خطابات {period === 'week' ? 'الأسبوع' : period === 'month' ? 'الشهر' : 'السنة'}</div>
-                <div className="text-xl font-bold">{stats?.recent || 0}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">المجموع</div>
+                <div className="text-xl font-bold">{stats?.total || 0}</div>
               </div>
             </div>
           </div>
@@ -694,7 +624,7 @@ export function Dashboard() {
           </div>
         </motion.div>
         
-        {/* Tasks & Approvals */}
+        {/* Tasks & Reminders */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -704,103 +634,70 @@ export function Dashboard() {
           <div className="p-5 border-b dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
               <LayoutDashboard className="h-5 w-5 ml-2 text-purple-500" />
-              المهام وطلبات الموافقة
+              المهام والتذكيرات
+              {selectedBranch && (
+                <span className="mr-2 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded-full">
+                  حسب الفرع
+                </span>
+              )}
             </h2>
           </div>
           
           <div className="p-5">
-            <h3 className="font-medium text-gray-800 dark:text-white flex items-center mb-4">
-              <ListTodo className="h-4 w-4 ml-2 text-primary" />
-              المهام الحالية
-            </h3>
-            
-            <div className="space-y-3 mb-6">
-              {tasksLoading ? (
-                <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary"></div>
-                </div>
-              ) : pendingTasks.length === 0 ? (
-                <div className="text-center py-4 bg-gray-50 dark:bg-gray-700/20 rounded-lg">
-                  <p className="text-gray-500 dark:text-gray-400">لا توجد مهام حالية</p>
-                </div>
-              ) : (
-                pendingTasks.map((task: any) => (
-                  <div 
-                    key={task.id} 
-                    className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/20 cursor-pointer"
-                    onClick={() => navigate(`/admin/tasks/${task.id}`)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-gray-800 dark:text-white">{task.title}</h4>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        task.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 
-                        task.priority === 'medium' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
-                        'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                      }`}>
-                        {task.priority === 'high' ? 'عالية' : task.priority === 'medium' ? 'متوسطة' : 'منخفضة'}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex justify-between">
-                      <span>{task.assignee?.full_name || 'غير معين'}</span>
-                      {task.due_date && (
-                        <span>تاريخ الاستحقاق: {getHijriDate(task.due_date)}</span>
+            <div className="space-y-3">
+              {tasks.map(task => (
+                <div key={task.id} className={`p-4 rounded-lg border ${
+                  task.status === 'completed' 
+                    ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/20' 
+                    : 'border-primary/20 bg-primary/5'
+                }`}>
+                  <div className="flex items-center">
+                    <div className={`h-5 w-5 rounded-full flex items-center justify-center ${
+                      task.status === 'completed' 
+                        ? 'bg-green-500 text-white' 
+                        : 'border-2 border-primary'
+                    }`}>
+                      {task.status === 'completed' && (
+                        <CheckCircle className="h-4 w-4" />
                       )}
                     </div>
+                    
+                    <div className="flex-1 mr-3 min-w-0">
+                      <p className={`font-medium ${
+                        task.status === 'completed' 
+                          ? 'text-gray-500 dark:text-gray-400 line-through' 
+                          : 'text-gray-800 dark:text-white'
+                      }`}>
+                        {task.title}
+                      </p>
+                      
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        تاريخ الاستحقاق: {getHijriDate(task.dueDate)}
+                      </p>
+                    </div>
+                    
+                    {task.status !== 'completed' && (
+                      <button className="p-1 text-primary hover:text-primary/80">
+                        <CheckCircle className="h-5 w-5" />
+                      </button>
+                    )}
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
             
-            <h3 className="font-medium text-gray-800 dark:text-white flex items-center mb-4">
-              <ClipboardCheck className="h-4 w-4 ml-2 text-primary" />
-              طلبات الموافقة المعلقة
-            </h3>
-            
-            <div className="space-y-3">
-              {approvalsLoading ? (
-                <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary"></div>
-                </div>
-              ) : pendingApprovals.length === 0 ? (
-                <div className="text-center py-4 bg-gray-50 dark:bg-gray-700/20 rounded-lg">
-                  <p className="text-gray-500 dark:text-gray-400">لا توجد طلبات موافقة معلقة</p>
-                </div>
-              ) : (
-                pendingApprovals.map((approval: any) => (
-                  <div 
-                    key={approval.request_id} 
-                    className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/20 cursor-pointer"
-                    onClick={() => navigate('/admin/approvals')}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-gray-800 dark:text-white truncate">{approval.letter_subject || 'خطاب بلا عنوان'}</h4>
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex justify-between">
-                      <span>من: {approval.requester_name}</span>
-                      <span>{new Date(approval.requested_at).toLocaleDateString('ar-SA')}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            {tasks.length === 0 && (
+              <div className="text-center py-8">
+                <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-3" />
+                <p className="font-medium text-gray-800 dark:text-white">لا توجد مهام حالية</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">أنت متفرغ حالياً!</p>
+              </div>
+            )}
             
             <div className="mt-4 pt-4 border-t dark:border-gray-700">
-              <div className="grid grid-cols-2 gap-2">
-                <button 
-                  onClick={() => navigate('/admin/tasks')}
-                  className="w-full py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors flex items-center justify-center gap-1"
-                >
-                  <ListTodo className="h-4 w-4" />
-                  <span>كل المهام</span>
-                </button>
-                <button
-                  onClick={() => navigate('/admin/approvals')}
-                  className="w-full py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors flex items-center justify-center gap-1"
-                >
-                  <ClipboardCheck className="h-4 w-4" />
-                  <span>الموافقات</span>
-                </button>
-              </div>
+              <button className="w-full py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">
+                إضافة مهمة جديدة
+              </button>
             </div>
           </div>
           
@@ -808,7 +705,7 @@ export function Dashboard() {
           <div className="border-t dark:border-gray-700 p-5">
             <h3 className="font-medium text-gray-800 dark:text-white flex items-center mb-4">
               <Calendar className="h-4 w-4 ml-2 text-primary" />
-              تذكيرات هامة
+              أحداث قادمة
             </h3>
             
             <div className="space-y-3">
@@ -818,7 +715,7 @@ export function Dashboard() {
                   <span className="text-xs">يونيو</span>
                 </div>
                 <div className="mr-3">
-                  <p className="font-medium text-gray-800 dark:text-white">مراجعة المسودات المتأخرة</p>
+                  <p className="font-medium text-gray-800 dark:text-white">اجتماع مراجعة القوالب</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">10:00 صباحاً - 11:30 صباحاً</p>
                 </div>
               </div>
