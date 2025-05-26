@@ -16,17 +16,18 @@ import { RichTextEditor } from '../../../../components/letters/RichTextEditor';
 import { useToast } from '../../../../hooks/useToast';
 import { TextTemplateSelector } from '../../../../components/letters/TextTemplateSelector';
 import { EditorSelector } from '../../../../components/letters/EditorSelector';
-import Stepper from './Stepper';
-import BasicInfoStep from './BasicInfoStep';
-import ContentStep from './ContentStep/index';
-import FinalStep from './FinalStep';
+import Stepper from './Stepper'; 
+import BasicInfoStep from './BasicInfoStep'; 
+import ContentStep from './ContentStep/index'; 
+import FinalStep from './FinalStep'; 
 // Lazy loaded components
 const TemplateStep = lazy(() => import('./TemplateStep'));
 
+// تعريف أسماء الأشهر الميلادية بالعربية
 const MONTHS_AR = [
-  'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني',
-  'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان',
-  'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
+  'يناير', 'فبراير', 'مارس', 'إبريل',
+  'مايو', 'يونيو', 'يوليو', 'أغسطس',
+  'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
 ];
 
 interface EditorConfig {

@@ -41,11 +41,12 @@ export default function PreviewPane({
   onDateSelect
 }: PreviewPaneProps) {
   const { toast } = useToast();
-  const today = new Date();
-  const currentHijriMonth = 0; // يمكن استبداله بالمنطق المناسب
-  const currentHijriYear = 0; // يمكن استبداله بالمنطق المناسب
-  const currentHijriDay = 0; // يمكن استبداله بالمنطق المناسب
-  const daysInMonth = 30; // يمكن استبداله بالمنطق المناسب
+  const today = new Date(); 
+  // استخدام التاريخ الميلادي بدلاً من الهجري
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  const currentDay = today.getDate();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
   // نسخ رابط التحقق
   const copyVerificationUrl = () => {
