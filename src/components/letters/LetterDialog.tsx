@@ -137,11 +137,12 @@ export function LetterDialog({ isOpen, onClose, onSuccess }: Props) {
   }
 
   function handleDateSelect(day: number, month: number, year: number) {
-    const date = moment()
-      .iYear(year)
-      .iMonth(month)
-      .iDate(day)
-      .format('iDD/iMM/iYYYY')
+    // تنسيق التاريخ الميلادي بدلاً من الهجري
+    const date = new Date(year, month, day).toLocaleDateString('ar-SA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
     setContent(prev => ({ ...prev, date }))
     setShowDatePicker(false)
   }
