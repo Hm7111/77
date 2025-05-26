@@ -135,9 +135,14 @@ export function useLetterEditor({ letterRef }: UseLetterEditorProps = {}) {
     try {
       setIsLoading(true);
       
+      // تحسين: تقليل حجم template_snapshot
+      // فقط حفظ البيانات الضرورية من القالب
+      const selectedTemplate = await getTemplateMinimalData(templateId);
+      
       const draft = await saveDraft({
         user_id: dbUser.id,
         template_id: templateId,
+        template_snapshot: selectedTemplate, // استخدام النسخة المصغرة
         content,
         status: 'draft',
         number: nextNumber,
@@ -183,10 +188,15 @@ export function useLetterEditor({ letterRef }: UseLetterEditorProps = {}) {
     const verificationUrl = crypto.randomUUID();
 
     try {
+      // تحسين: تقليل حجم template_snapshot
+      // فقط حفظ البيانات الضرورية من القالب
+      const selectedTemplate = await getTemplateMinimalData(templateId);
+      
       // إنشاء مسودة أولاً
       const draft = await saveDraft({
         user_id: dbUser.id,
         template_id: templateId,
+        template_snapshot: selectedTemplate, // استخدام النسخة المصغرة
         content: {
           ...content,
           verification_url: verificationUrl
@@ -226,6 +236,29 @@ export function useLetterEditor({ letterRef }: UseLetterEditorProps = {}) {
       setIsLoading(false);
     }
   }, [dbUser, user, templateId, content, nextNumber, currentYear, saveDraft, createLetter, toast, navigate]);
+
+  // وظيفة مساعدة للحصول على بيانات مصغرة من القالب
+  async function getTemplateMinimalData(templateId: string) {
+    try {
+      const { data } = await supabase
+        .from('letter_templates')
+        .select(`
+          id, 
+          name, 
+          image_url, 
+          qr_position,
+          letter_elements,
+          version
+        `)
+        .eq('id', templateId)
+        .single();
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching template minimal data:', error);
+      return null;
+    }
+  }
 
   // وظائف إضافية للمحرر
   return {

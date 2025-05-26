@@ -43,6 +43,16 @@ function createSupabaseClient() {
         'Access-Control-Allow-Origin': '*'
       },
       fetch: fetch.bind(globalThis)
+    },
+    // تحسين: تقليل حجم الاستجابة
+    db: {
+      schema: 'public'
+    },
+    // تحسين: تقليل عدد الطلبات
+    realtime: {
+      params: {
+        eventsPerSecond: 1
+      }
     }
   })
 
