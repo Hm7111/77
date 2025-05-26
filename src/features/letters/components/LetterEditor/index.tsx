@@ -286,133 +286,17 @@ export function LetterEditor() {
   }
 
   function handleDateSelect(day: number, month: number, year: number) {
-    const date = moment()
-      .iYear(year)
-      .iMonth(month)
-      .iDate(day)
-      .format('iDD/iMM/iYYYY');
+    // تنسيق التاريخ الميلادي بدلاً من الهجري
+    const date = new Date(year, month, day).toLocaleDateString('ar-SA', {
+      year: 'numeric',
+      month: '2-digit', 
+      day: '2-digit'
+    });
     setContent(prev => ({ ...prev, date }));
     setShowDatePicker(false);
     
     // إغلاق التقويم عند النقر خارجه
     document.addEventListener('click', () => setShowDatePicker(false), { once: true });
-  }
-
-  async function handlePrint() {
-    if (!templateId) return;
-    
-    try {
-      toast({
-        title: 'جارِ الطباعة...',
-        description: 'يتم تجهيز الخطاب للطباعة',
-        type: 'info'
-      });
-      
-      // Create a temporary letter object for print purposes
-      const tempLetter = {
-        id: '',
-        user_id: dbUser?.id || '',
-        template_id: templateId,
-        template_snapshot: selectedTemplate ? {
-          id: selectedTemplate.id,
-          name: selectedTemplate.name,
-          image_url: selectedTemplate.image_url,
-          variables: selectedTemplate.variables,
-          zones: selectedTemplate.zones,
-          version: selectedTemplate.version
-        } : undefined,
-        content,
-        status: 'draft',
-        number: nextNumber || 0,
-        year: currentYear,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        letter_templates: selectedTemplate
-      };
-      
-      await printLetter(tempLetter);
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء الطباعة',
-        type: 'error'
-      });
-    }
-  }
-
-  async function handleExportPDF() {
-    if (!templateId) return;
-    
-    setIsExporting(true);
-    try {
-      toast({
-        title: 'جارِ التصدير...',
-        description: 'يتم تصدير الخطاب كملف PDF',
-        type: 'info'
-      });
-      
-      // Create a temporary letter object for export purposes
-      const tempLetter = {
-        id: '',
-        user_id: dbUser?.id || '',
-        template_id: templateId,
-        template_snapshot: selectedTemplate ? {
-          id: selectedTemplate.id,
-          name: selectedTemplate.name,
-          image_url: selectedTemplate.image_url,
-          variables: selectedTemplate.variables,
-          zones: selectedTemplate.zones,
-          version: selectedTemplate.version
-        } : undefined,
-        content,
-        status: 'draft',
-        number: nextNumber || 0,
-        year: currentYear,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        letter_templates: selectedTemplate
-      };
-      
-      await exportLetterToPDF(tempLetter);
-      
-      toast({
-        title: 'تم التصدير',
-        description: 'تم تصدير الخطاب بنجاح',
-        type: 'success'
-      });
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تصدير الملف',
-        type: 'error'
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  }
-
-  // نسخ رابط رمز QR
-  function copyVerificationUrl() {
-    if (!content.verification_url) return;
-    
-    const url = `${window.location.origin}/verify/${content.verification_url}`;
-    navigator.clipboard.writeText(url)
-      .then(() => {
-        toast({
-          title: 'تم النسخ',
-          description: 'تم نسخ رابط التحقق بنجاح',
-          type: 'success'
-        });
-      })
-      .catch(() => {
-        toast({
-          title: 'خطأ',
-          description: 'حدث خطأ أثناء نسخ الرابط',
-          type: 'error'
-        });
-      });
   }
 
   function toggleEditorStyle() {
