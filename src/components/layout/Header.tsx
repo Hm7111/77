@@ -196,7 +196,7 @@ export function Header() {
               <img 
                 src="https://hbxalipjrbcrqljddxfp.supabase.co/storage/v1/object/public/templates//logo.png" 
                 alt="الجمعية السعودية للإعاقة السمعية" 
-                className="h-10 object-contain dark:invert dark:brightness-0 dark:contrast-200 transition-all duration-300" 
+                className="h-10 object-contain dark:brightness-0 dark:invert dark:contrast-200 transition-all duration-300" 
               />
               <h1 className="text-xl font-bold hidden sm:block">نظام إدارة الخطابات</h1>
             </Link>
@@ -335,21 +335,21 @@ export function Header() {
       {/* القائمة الجانبية للشاشات الصغيرة */}
       {showMobileMenu && (
         <div className="fixed inset-0 z-40 md:hidden" onClick={() => setShowMobileMenu(false)}>
-          <div className="absolute inset-0 bg-black/20" onClick={() => setShowMobileMenu(false)}></div>
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMobileMenu(false)}></div>
           
-          <div className="absolute inset-y-0 right-0 w-64 bg-white dark:bg-gray-900 shadow-lg" onClick={e => e.stopPropagation()}>
+          <div className="absolute inset-y-0 right-0 w-64 bg-[#0f172a] shadow-lg" onClick={e => e.stopPropagation()}>
             {/* محتوى القائمة الجانبية للجوال */}
-            <div className="p-4 border-b dark:border-gray-800 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+            <div className="p-4 border-b border-gray-700/20 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center">
                 <User className="h-5 w-5" />
               </div>
               <div>
-                <div className="font-medium">{dbUser?.full_name || 'المستخدم'}</div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">{dbUser?.role === 'admin' ? 'مدير' : 'مستخدم'}</div>
+                <div className="font-medium text-white">{dbUser?.full_name || 'المستخدم'}</div>
+                <div className="text-xs text-gray-400">{dbUser?.role === 'admin' ? 'مدير' : 'مستخدم'}</div>
               </div>
             </div>
             
-            <div className="p-2">
+            <div className="p-2 text-gray-400">
               {[
                 { name: 'الرئيسية', href: '/admin', icon: Home },
                 { name: 'الخطابات', href: '/admin/letters', icon: FileText },
@@ -363,7 +363,7 @@ export function Header() {
                 <Link
                   key={item.href}
                   to={item.href}
-                  className="flex items-center gap-x-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="flex items-center gap-x-3 px-3 py-2 text-sm font-medium hover:bg-[#1e293b] hover:text-white"
                   onClick={() => setShowMobileMenu(false)}
                 >
                   <item.icon className="h-5 w-5" />
@@ -371,10 +371,10 @@ export function Header() {
                 </Link>
               ))}
               
-              <div className="border-t dark:border-gray-800 my-2 pt-2">
+              <div className="border-t border-gray-700/20 my-2 pt-2">
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-x-3 px-3 py-2 text-sm font-medium rounded-lg text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 w-full text-right"
+                  className="flex items-center gap-x-3 px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-900/20 w-full text-right"
                 >
                   <LogOut className="h-5 w-5" />
                   تسجيل الخروج

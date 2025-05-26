@@ -78,7 +78,7 @@ export function Sidebar() {
   const navigation = getNavigationItems();
 
   return (
-    <aside className="w-64 border-l border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 h-[calc(100vh-4rem)] p-4 transition-colors duration-300">
+    <aside className="w-64 border-l border-gray-700/20 bg-[#0f172a] h-[calc(100vh-4rem)] transition-colors duration-300">
       <nav className="space-y-1">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href || 
@@ -95,13 +95,13 @@ export function Sidebar() {
               key={item.name}
               to={item.href}
               className={cn(
-                'flex items-center gap-x-3 px-3 py-2 text-sm font-medium rounded-lg',
+                'flex items-center gap-x-3 px-4 py-3 text-sm font-medium',
                 isActive
-                  ? 'bg-gray-200/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-100'
+                  ? 'bg-primary/10 text-white border-r-4 border-primary'
+                  : 'text-gray-400 hover:bg-[#1e293b] hover:text-white'
               )}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className={`h-5 w-5 ${isActive ? 'text-primary' : ''}`} />
               {item.name}
             </Link>
           )

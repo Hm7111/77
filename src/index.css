@@ -5,14 +5,14 @@
 :root {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
+  --primary: 217.2 91.2% 59.8%;
   --primary-foreground: 210 40% 98%;
 }
 
 :root[class~="dark"] {
   --background: 240 10% 4%;
   --foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 60%;
+  --primary: 217.2 91.2% 59.8%;
   --primary-foreground: 222.2 84% 4.9%;
   --card: 240 10% 4%;
   --card-foreground: 0 0% 98%;
@@ -44,7 +44,7 @@
 
   /* تنسيق البطاقات في الوضع الليلي */
   .card {
-    @apply bg-white dark:bg-gray-900 border dark:border-gray-800 shadow-sm dark:shadow-gray-900/30;
+    @apply bg-white dark:bg-gray-900 border dark:border-gray-800 shadow-sm;
   }
 
   /* تنسيق الجداول في الوضع الليلي */
@@ -66,7 +66,7 @@
 
   /* تنسيق الأزرار في الوضع الليلي */
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 dark:hover:bg-primary/80;
+    @apply bg-primary text-white hover:bg-primary-600 dark:hover:bg-primary-700;
   }
 
   .btn-secondary {
