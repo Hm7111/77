@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { 
   ArrowRight, Printer, Download, Share2, Copy, Eye, EyeOff, FileText, CheckCircle, History, AlertCircle, RefreshCw,
-  FileCheck, Calendar, User, Building, Settings
+  FileCheck, Calendar, User, Building, Settings, ClipboardCheck
 } from 'lucide-react';
 import QRCode from 'qrcode.react';
 import moment from 'moment-hijri';
@@ -483,7 +483,7 @@ export function ViewableLetterEditor() {
                 backgroundImage: templateData?.image_url ? `url(${templateData.image_url})` : 'none',
                 backgroundSize: '100% 100%',
                 backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
+                backgroundRepeat:  'no-repeat',
                 direction: 'rtl'
               }}
             >
@@ -723,4 +723,48 @@ export function ViewableLetterEditor() {
                   onClick={handleRequestApproval}
                   className="px-3 py-1.5 bg-primary text-white rounded-lg text-sm flex items-center gap-1.5 ml-auto"
                 >
-                  <CheckCircle className="h-4 w-4
+                  <CheckCircle className="h-4 w-4" />
+                  <span>طلب موافقة</span>
+                </button>
+              )}
+            </div>
+            
+            {showWorkflowDetails && (
+              <div className="mt-6">
+                <WorkflowTimeline
+                  letterId={letter.id}
+                  status={letter.workflow_status}
+                  approvalId={letter.approval_id}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <ClipboardCheck className="h-5 w-5 text-primary" />
+                حالة سير العمل
+              </h3>
+            </div>
+            
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">الحالة الحالية:</span>
+                <WorkflowStatus status="draft" size="md" />
+              </div>
+              
+              <button
+                onClick={handleRequestApproval}
+                className="px-3 py-1.5 bg-primary text-white rounded-lg text-sm flex items-center gap-1.5 ml-auto"
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span>طلب موافقة</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
