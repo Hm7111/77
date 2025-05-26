@@ -20,24 +20,24 @@ export default {
           700: '#1d4ed8',
           800: '#1e40af',
           900: '#1e3a8a',
-          950: '#172554',
+          950: '#172554'
         },
         'dark-bg': '#1a1a1a',
-        'dark-text': '#e5e5e5',
+        'dark-text': '#e5e5e5'
       },
       screens: {
-        'xs': '475px',
+        'xs': '475px'
       },
       keyframes: {
         'fade-in': {
           '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
+          '100%': { opacity: '1' }
         }
       },
       animation: {
-        'fade-in': 'fade-in 0.3s ease-in-out',
+        'fade-in': 'fade-in 0.3s ease-in-out'
       }
-    },
+    }
   },
-  plugins: [],
-};
+  plugins: []
+}
