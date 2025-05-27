@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
-import { HelpCircle, Keyboard, LogOut, Moon, Sun, Settings, Bell, User, Search, Menu, X, Building } from 'lucide-react'
+import { HelpCircle, Keyboard, LogOut, Moon, Sun, Settings, Bell, User, Search, Menu, X, Building, CheckCircle, Clock, FileText } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useThemeStore } from '../../store/theme'
 import { supabase } from '../../lib/supabase'
 import { useHotkeys } from '../../hooks/useHotkeys'
 import { useAuth } from '../../lib/auth'
 import { useToast } from '../../hooks/useToast'
-import { useWorkflow } from '../../hooks/useWorkflow'
 import { useQuery } from '@tanstack/react-query'
+import { NotificationBadge } from '../../features/notifications/components'
 
 export function Header() {
   const { theme, setTheme } = useThemeStore()
@@ -18,24 +18,6 @@ export function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
-  
-  const [unreadNotifications, setUnreadNotifications] = useState(0)
-  const [showNotifications, setShowNotifications] = useState(false)
-  
-  const { getPendingApprovals } = useWorkflow()
-  
-  // استعلام لجلب عدد طلبات الموافقة المعلقة
-  const { data: pendingApprovals = [] } = useQuery({
-    queryKey: ['pendingApprovals'],
-    queryFn: getPendingApprovals,
-    enabled: !!dbUser,
-    refetchInterval: 60000, // تحديث كل دقيقة
-  })
-  
-  // تحديث عدد الإشعارات غير المقروءة
-  useEffect(() => {
-    setUnreadNotifications(pendingApprovals.length);
-  }, [pendingApprovals]);
   
   // تسجيل اختصارات لوحة المفاتيح
   useEffect(() => {
@@ -115,71 +97,6 @@ export function Header() {
       )}
 
       {/* نافذة الإشعارات */}
-      {showNotifications && (
-        <div className="fixed top-16 left-4 z-50 w-80 bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 shadow-lg overflow-hidden">
-          <div className="p-3 border-b dark:border-gray-800 flex items-center justify-between">
-            <h3 className="font-semibold">الإشعارات</h3>
-            <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1 rounded-full">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          
-          <div className="max-h-96 overflow-y-auto">
-            {pendingApprovals.length === 0 ? (
-              <div className="text-center py-8 px-4 text-gray-500 dark:text-gray-400">
-                <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                <p>لا توجد إشعارات جديدة</p>
-              </div>
-            ) : (
-              <div className="divide-y dark:divide-gray-800">
-                {pendingApprovals.map((approval) => (
-                  <div key={approval.request_id} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                        <Bell className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium mb-1">طلب موافقة جديد</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          طلب موافقة على خطاب "{approval.letter_subject}" من {approval.requester_name}
-                        </p>
-                        <div className="mt-2">
-                          <button
-                            onClick={() => {
-                              setShowNotifications(false);
-                              navigate('/admin/approvals');
-                            }}
-                            className="text-primary text-sm hover:underline"
-                          >
-                            عرض التفاصيل
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                          {new Date(approval.requested_at).toLocaleString('ar-SA')}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {pendingApprovals.length > 0 && (
-            <div className="p-3 border-t dark:border-gray-800">
-              <button
-                onClick={() => {
-                  setShowNotifications(false);
-                  navigate('/admin/approvals');
-                }}
-                className="w-full p-2 bg-primary text-white rounded-lg text-sm"
-              >
-                عرض جميع الإشعارات
-              </button>
-            </div>
-          )}
-        </div>
-      )}
     
       <header className="border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 bg-white dark:bg-gray-900 shadow-sm transition-colors duration-300 w-full">
         <div className="px-6 h-16 flex items-center justify-between">
@@ -209,22 +126,7 @@ export function Header() {
           </div>
           
           <div className="flex items-center gap-x-1.5">
-            <button
-              id="keyboard-shortcuts"
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 group relative text-gray-500 dark:text-gray-400"
-              title="اختصارات لوحة المفاتيح (Ctrl+K)"
-              onClick={() => setShowShortcuts(true)}
-            >
-              <Keyboard className="h-5 w-5" />
-              <div className="help-tooltip -bottom-24 left-1/2 -translate-x-1/2 w-48">
-                <div className="space-y-2 text-xs">
-                  <p className="flex items-center justify-between">
-                    <span>اختصارات لوحة المفاتيح</span>
-                    <kbd className="shortcut-key">Ctrl+K</kbd>
-                  </p>
-                </div>
-              </div>
-            </button>
+            <NotificationBadge />
 
             <button
               id="help-guide"
@@ -234,20 +136,6 @@ export function Header() {
               <HelpCircle className="h-5 w-5" />
               <div className="help-tooltip -bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap">
                 عرض دليل المستخدم
-              </div>
-            </button>
-            
-            <button
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 group relative text-gray-500 dark:text-gray-400"
-              onClick={() => setShowNotifications(!showNotifications)}
-            >
-              <div className="relative">
-                <Bell className="h-5 w-5" />
-                {unreadNotifications > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs flex items-center justify-center rounded-full">
-                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                  </span>
-                )}
               </div>
             </button>
 

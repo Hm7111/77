@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { NotificationBadge } from '../../features/notifications/components'
+import { NotificationBadge } from '../../features/notifications/components'
 
 export function AdminLayout() {
   return (
