@@ -27,6 +27,11 @@ import moment from 'moment-hijri';
 import { BranchSelector } from '../../components/branches/BranchSelector';
 import { useToast } from '../../hooks/useToast';
 
+// Helper function to convert dates to Hijri format
+const getHijriDate = (date: string) => {
+  return moment(date).format('iYYYY/iM/iD');
+};
+
 export function Dashboard() {
   const navigate = useNavigate();
   const { dbUser } = useAuth();
@@ -239,7 +244,6 @@ export function Dashboard() {
   ];
 
   // تحويل التاريخ الميلادي إلى هجري
-  // تم تغيير الدالة لتعرض التاريخ الميلادي بدلاً من الهجري
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('ar-SA');
   };
