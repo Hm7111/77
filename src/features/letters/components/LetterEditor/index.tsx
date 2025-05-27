@@ -383,6 +383,46 @@ export function LetterEditor() {
     setEditorConfig(prev => ({...prev, lineHeight: value}));
   };
 
+  // Add handlePrint function
+  const handlePrint = async () => {
+    if (!letterPreviewRef.current) return;
+    
+    try {
+      await printLetter(letterPreviewRef.current);
+    } catch (error) {
+      console.error('Error printing letter:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء محاولة طباعة الخطاب',
+        type: 'error'
+      });
+    }
+  };
+
+  // Add handleExportPDF function
+  const handleExportPDF = async () => {
+    if (!letterPreviewRef.current) return;
+    
+    setIsExporting(true);
+    try {
+      await exportLetterToPDF(letterPreviewRef.current);
+      toast({
+        title: 'تم التصدير',
+        description: 'تم تصدير الخطاب بنجاح',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء تصدير الخطاب',
+        type: 'error'
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const today = moment();
   const currentHijriYear = today.iYear();
   const currentHijriMonth = today.iMonth();
