@@ -7,35 +7,33 @@ import {
 } from 'lucide-react';
 
 interface WorkflowTimelineProps {
-  letterId?: string;
-  status?: WorkflowState;
-  approvalId?: string;
+  letter: Letter;
   onRefresh?: () => void;
 }
 
 /**
  * مكون لعرض الجدول الزمني لسير العمل
  */
-export function WorkflowTimeline({ letterId, status, approvalId, onRefresh }: WorkflowTimelineProps) {
+export function WorkflowTimeline({ letter, onRefresh }: WorkflowTimelineProps) {
   const [approvalLogs, setApprovalLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { getApprovalLogs } = useApprovalDecisions();
   
   useEffect(() => {
-    if (approvalId) {
+    if (letter && letter.approval_id) {
       loadApprovalLogs();
     }
-  }, [approvalId]);
+  }, [letter]);
   
   // تحميل سجلات الموافقة
   async function loadApprovalLogs() {
-    if (!approvalId) return;
+    if (!letter.approval_id) return;
     
     setIsLoading(true);
     setError(null);
     try {
-      const logs = await getApprovalLogs(approvalId);
+      const logs = await getApprovalLogs(letter.approval_id);
       setApprovalLogs(logs);
     } catch (error) {
       console.error('Error loading approval logs:', error);
@@ -126,20 +124,6 @@ export function WorkflowTimeline({ letterId, status, approvalId, onRefresh }: Wo
     }
   };
 
-  if (!letterId && !approvalId) {
-    return (
-      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 p-5 text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 mb-3">
-          <AlertCircle className="h-6 w-6" />
-        </div>
-        <h3 className="text-lg font-medium mb-2">لا يمكن عرض سير العمل</h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-3">
-          لم يتم العثور على بيانات الخطاب
-        </p>
-      </div>
-    );
-  }
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -169,7 +153,7 @@ export function WorkflowTimeline({ letterId, status, approvalId, onRefresh }: Wo
     );
   }
   
-  if (!approvalId && status === 'draft') {
+  if (!letter.approval_id && letter.workflow_status === 'draft') {
     return (
       <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 p-5 text-center">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 mb-3">
@@ -181,7 +165,7 @@ export function WorkflowTimeline({ letterId, status, approvalId, onRefresh }: Wo
     );
   }
   
-  if (!approvalId) {
+  if (!letter.approval_id) {
     return (
       <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 p-5 text-center">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 mb-3">
@@ -189,7 +173,7 @@ export function WorkflowTimeline({ letterId, status, approvalId, onRefresh }: Wo
         </div>
         <h3 className="text-lg font-medium mb-2">لا توجد معلومات سير عمل</h3>
         <p className="text-gray-600 dark:text-gray-400 mb-3">
-          هذا الخطاب {status === 'approved' ? 'معتمد' : status === 'finalized' ? 'نهائي' : 'غير معروف الحالة'} 
+          هذا الخطاب {letter.workflow_status === 'approved' ? 'معتمد' : letter.workflow_status === 'finalized' ? 'نهائي' : 'غير معروف الحالة'} 
           ولكن لا توجد معلومات تفصيلية عن سير العمل.
         </p>
       </div>

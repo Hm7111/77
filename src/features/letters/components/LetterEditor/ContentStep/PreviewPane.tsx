@@ -41,11 +41,11 @@ export default function PreviewPane({
   onDateSelect
 }: PreviewPaneProps) {
   const { toast } = useToast();
-  const today = new Date(); 
-  // استخدام التاريخ الميلادي بدلاً من الهجري
-  const currentMonth = today.getMonth();
-  const currentDay = today.getDate();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const today = new Date();
+  const currentHijriMonth = 0; // يمكن استبداله بالمنطق المناسب
+  const currentHijriYear = 0; // يمكن استبداله بالمنطق المناسب
+  const currentHijriDay = 0; // يمكن استبداله بالمنطق المناسب
+  const daysInMonth = 30; // يمكن استبداله بالمنطق المناسب
 
   // نسخ رابط التحقق
   const copyVerificationUrl = () => {
@@ -135,16 +135,16 @@ export default function PreviewPane({
             {showDatePicker && !editorState.previewMode && (
               <div className="absolute top-[90px] left-[120px] w-64 bg-white rounded-lg shadow-lg border p-2 z-10">
                 <div className="text-center mb-2 font-semibold">
-                  {MONTHS_AR[currentMonth]} {currentYear}
+                  {MONTHS_AR[currentHijriMonth]} {currentHijriYear}
                 </div>
                 <div className="grid grid-cols-7 gap-1">
                   {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
                     <button
                       key={day}
                       type="button"
-                      onClick={() => onDateSelect(day, currentMonth, currentYear)}
+                      onClick={() => onDateSelect(day, currentHijriMonth, currentHijriYear)}
                       className={`p-1 text-sm rounded hover:bg-gray-100 ${
-                        day === currentDay ? 'bg-primary text-white hover:bg-primary/90' : ''
+                        day === currentHijriDay ? 'bg-primary text-white hover:bg-primary/90' : ''
                       }`}
                     >
                       {day}

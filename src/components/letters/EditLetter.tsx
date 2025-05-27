@@ -79,12 +79,11 @@ export function EditLetter() {
   }
 
   function handleDateSelect(day: number, month: number, year: number) {
-    // تنسيق التاريخ الميلادي بدلاً من الهجري
-    const date = new Date(year, month, day).toLocaleDateString('ar-SA', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
+    const date = moment()
+      .iYear(year)
+      .iMonth(month)
+      .iDate(day)
+      .format('iDD/iMM/iYYYY');
     setContent(prev => ({ ...prev, date }));
     setShowDatePicker(false);
   }

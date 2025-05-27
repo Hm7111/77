@@ -16,18 +16,17 @@ import { RichTextEditor } from '../../../../components/letters/RichTextEditor';
 import { useToast } from '../../../../hooks/useToast';
 import { TextTemplateSelector } from '../../../../components/letters/TextTemplateSelector';
 import { EditorSelector } from '../../../../components/letters/EditorSelector';
-import Stepper from './Stepper'; 
-import BasicInfoStep from './BasicInfoStep'; 
-import ContentStep from './ContentStep/index'; 
-import FinalStep from './FinalStep'; 
+import Stepper from './Stepper';
+import BasicInfoStep from './BasicInfoStep';
+import ContentStep from './ContentStep/index';
+import FinalStep from './FinalStep';
 // Lazy loaded components
 const TemplateStep = lazy(() => import('./TemplateStep'));
 
-// تعريف أسماء الأشهر الميلادية بالعربية
 const MONTHS_AR = [
-  'يناير', 'فبراير', 'مارس', 'إبريل',
-  'مايو', 'يونيو', 'يوليو', 'أغسطس',
-  'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني',
+  'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان',
+  'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
 ];
 
 interface EditorConfig {
@@ -286,17 +285,133 @@ export function LetterEditor() {
   }
 
   function handleDateSelect(day: number, month: number, year: number) {
-    // تنسيق التاريخ الميلادي بدلاً من الهجري
-    const date = new Date(year, month, day).toLocaleDateString('ar-SA', {
-      year: 'numeric',
-      month: '2-digit', 
-      day: '2-digit'
-    });
+    const date = moment()
+      .iYear(year)
+      .iMonth(month)
+      .iDate(day)
+      .format('iDD/iMM/iYYYY');
     setContent(prev => ({ ...prev, date }));
     setShowDatePicker(false);
     
     // إغلاق التقويم عند النقر خارجه
     document.addEventListener('click', () => setShowDatePicker(false), { once: true });
+  }
+
+  async function handlePrint() {
+    if (!templateId) return;
+    
+    try {
+      toast({
+        title: 'جارِ الطباعة...',
+        description: 'يتم تجهيز الخطاب للطباعة',
+        type: 'info'
+      });
+      
+      // Create a temporary letter object for print purposes
+      const tempLetter = {
+        id: '',
+        user_id: dbUser?.id || '',
+        template_id: templateId,
+        template_snapshot: selectedTemplate ? {
+          id: selectedTemplate.id,
+          name: selectedTemplate.name,
+          image_url: selectedTemplate.image_url,
+          variables: selectedTemplate.variables,
+          zones: selectedTemplate.zones,
+          version: selectedTemplate.version
+        } : undefined,
+        content,
+        status: 'draft',
+        number: nextNumber || 0,
+        year: currentYear,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        letter_templates: selectedTemplate
+      };
+      
+      await printLetter(tempLetter);
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء الطباعة',
+        type: 'error'
+      });
+    }
+  }
+
+  async function handleExportPDF() {
+    if (!templateId) return;
+    
+    setIsExporting(true);
+    try {
+      toast({
+        title: 'جارِ التصدير...',
+        description: 'يتم تصدير الخطاب كملف PDF',
+        type: 'info'
+      });
+      
+      // Create a temporary letter object for export purposes
+      const tempLetter = {
+        id: '',
+        user_id: dbUser?.id || '',
+        template_id: templateId,
+        template_snapshot: selectedTemplate ? {
+          id: selectedTemplate.id,
+          name: selectedTemplate.name,
+          image_url: selectedTemplate.image_url,
+          variables: selectedTemplate.variables,
+          zones: selectedTemplate.zones,
+          version: selectedTemplate.version
+        } : undefined,
+        content,
+        status: 'draft',
+        number: nextNumber || 0,
+        year: currentYear,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        letter_templates: selectedTemplate
+      };
+      
+      await exportLetterToPDF(tempLetter);
+      
+      toast({
+        title: 'تم التصدير',
+        description: 'تم تصدير الخطاب بنجاح',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: 'خطأ',
+        description: 'حدث خطأ أثناء تصدير الملف',
+        type: 'error'
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  // نسخ رابط رمز QR
+  function copyVerificationUrl() {
+    if (!content.verification_url) return;
+    
+    const url = `${window.location.origin}/verify/${content.verification_url}`;
+    navigator.clipboard.writeText(url)
+      .then(() => {
+        toast({
+          title: 'تم النسخ',
+          description: 'تم نسخ رابط التحقق بنجاح',
+          type: 'success'
+        });
+      })
+      .catch(() => {
+        toast({
+          title: 'خطأ',
+          description: 'حدث خطأ أثناء نسخ الرابط',
+          type: 'error'
+        });
+      });
   }
 
   function toggleEditorStyle() {
@@ -381,46 +496,6 @@ export function LetterEditor() {
   const handleLineHeightChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = parseFloat(e.target.value);
     setEditorConfig(prev => ({...prev, lineHeight: value}));
-  };
-
-  // Add handlePrint function
-  const handlePrint = async () => {
-    if (!letterPreviewRef.current) return;
-    
-    try {
-      await printLetter(letterPreviewRef.current);
-    } catch (error) {
-      console.error('Error printing letter:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء محاولة طباعة الخطاب',
-        type: 'error'
-      });
-    }
-  };
-
-  // Add handleExportPDF function
-  const handleExportPDF = async () => {
-    if (!letterPreviewRef.current) return;
-    
-    setIsExporting(true);
-    try {
-      await exportLetterToPDF(letterPreviewRef.current);
-      toast({
-        title: 'تم التصدير',
-        description: 'تم تصدير الخطاب بنجاح',
-        type: 'success'
-      });
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء تصدير الخطاب',
-        type: 'error'
-      });
-    } finally {
-      setIsExporting(false);
-    }
   };
 
   const today = moment();
