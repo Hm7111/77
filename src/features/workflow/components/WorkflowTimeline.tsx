@@ -21,14 +21,14 @@ export function WorkflowTimeline({ letter, onRefresh }: WorkflowTimelineProps) {
   const { getApprovalLogs } = useApprovalDecisions();
   
   useEffect(() => {
-    if (letter && letter.approval_id) {
+    if (letter?.approval_id) {
       loadApprovalLogs();
     }
   }, [letter]);
   
   // تحميل سجلات الموافقة
   async function loadApprovalLogs() {
-    if (!letter.approval_id) return;
+    if (!letter?.approval_id) return;
     
     setIsLoading(true);
     setError(null);
@@ -123,6 +123,20 @@ export function WorkflowTimeline({ letter, onRefresh }: WorkflowTimelineProps) {
         return action;
     }
   };
+
+  if (!letter) {
+    return (
+      <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 p-5 text-center">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 mb-3">
+          <AlertCircle className="h-6 w-6" />
+        </div>
+        <h3 className="text-lg font-medium mb-2">لا يمكن عرض سير العمل</h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-3">
+          لم يتم العثور على بيانات الخطاب
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
