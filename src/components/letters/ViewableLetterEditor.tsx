@@ -734,6 +734,8 @@ export function ViewableLetterEditor() {
                 <WorkflowTimeline
                   letterId={letter.id}
                   status={letter.workflow_status}
+                  letterId={letter.id}
+                  status={letter.workflow_status}
                   approvalId={letter.approval_id}
                 />
               </div>
